@@ -1,0 +1,10 @@
+;;;=============
+;;;  ZenScheme
+;;;=============
+;;;
+;;;; Local muini
+;;;
+
+
+(zen:default-safety 'release)
+(zen:default-target 'zen)

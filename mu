@@ -1,0 +1,54 @@
+#!/bin/sh
+
+REL="$(dirname "$0")"
+ABS="$(cd "$REL"; pwd)"
+
+if [ -f ".mu" ]; then
+    . "$(pwd)/.mu"
+fi
+
+if [ -z "$GAMBITDIR" ]; then
+    GSC="gsc"
+else
+    GSC="$GAMBITDIR/bin/gsc"
+    if [ ! -f "$GSC" ]; then
+        echo "Unable to find $GAMBITDIR/bin/gsc"
+        exit 1
+    fi
+fi
+
+SCM="$REL/kernel/mu.scm"
+
+display_module_info () {
+    echo "$1"
+    if [ -d "$2" ]; then
+        cd "$2" &&
+        git log -1
+    fi
+}
+
+display_info () {
+    (display_module_info "Zen" "$REL")
+}
+
+case "$1" in
+    "info" )
+        display_info
+        exit
+        ;;
+
+    "environment" )
+        echo "REL: $REL"
+        echo "ABS: $ABS"
+        echo "GAMBITDIR: $GAMBITDIR"
+        echo "GSC: $GSC"
+        echo "SCM: $SCM"
+        exit
+        ;;
+esac
+
+if [ -z "$GAMBITDIR" ]; then
+    exec "$GSC" -i "$SCM" "$@"
+else
+    exec "$GSC" -:dar -i "$SCM" "$@"
+fi
