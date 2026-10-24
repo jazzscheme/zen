@@ -1,0 +1,34 @@
+;;;==============
+;;;  JazzScheme
+;;;==============
+;;;
+;;;; Project
+;;;
+
+
+(data jazz.ide.data.project
+
+
+(import (jazz.project)
+        (jazz.editor.jazz))
+
+
+(form
+  (<Project>                 name: zen         description-file: {File :context ".package"}
+    (<Project-Directory>                       directory: {Directory :context "src"}
+      (<Project-Directory>                     directory: {Directory :context "src" "zen"}
+        (<Project-Directory>                   directory: {Directory :context "src" "zen" "dialect"}
+          (<Project-File>                      source: {File :context "src" "zen" "dialect" "_dialect.scm"})
+          (<Project-File>                      source: {File :context "src" "zen" "dialect" "runtime.scm"})
+          (<Project-File>                      source: {File :context "src" "zen" "dialect" "kernel.scm"})
+          (<Project-File>                      source: {File :context "src" "zen" "dialect" "syntax.scm"}))
+        (<Project-Directory>                   directory: {Directory :context "src" "zen" "language"}
+          (<Jazz-File>       name: runtime     source: {File :context "src" "zen" "language" "runtime.zen"})
+          (<Project-File>                      source: {File :context "src" "zen" "language" "loop.scm"}))
+        (<Project-File>                        source: {File :context "src" "zen" "_zen.scm"})
+        (<Project-File>                        source: {File :context "src" "zen" "install.scm"})
+        (<Jazz-File>         name: literals    source: {File :context "src" "zen" "literals.zen"})
+        (<Project-Directory>                   directory: {Directory :context "src" "zen" "backend"}
+          (<Project-File>                      source: {File :context "src" "zen" "backend" "_backend.scm"})
+          (<Project-File>                      source: {File :context "src" "zen" "backend" "core.scm"}))
+        (<Jazz-File>         name: core        source: {File :context "src" "zen" "core.zen"}))))))

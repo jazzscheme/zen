@@ -1,0 +1,15 @@
+(package zen
+  
+  (title "Zen")
+  (description "Zen programming language")
+  (authors "Guillaume Cartier" "Stephane Le Cornec")
+  (stage release)
+  (root "src")
+  (install zen.install)
+  (products (zen (update zen
+                         zen.core
+                         zen.install
+                         zen.literals)
+                 (dependencies gambit
+                               irregex)))
+  (project ".project"))

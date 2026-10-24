@@ -1,0 +1,88 @@
+;;;=============
+;;;  ZenScheme
+;;;=============
+;;;
+;;;; Scheme Core Kernel
+;;;
+
+
+(module scheme.kernel scheme
+
+
+;;;
+;;;; Annotate
+;;;
+
+
+(native zen:find-annotated)
+(native zen:find-annotated-type)
+(native zen:annotate-let)
+
+
+;;;
+;;;; Class
+;;;
+
+
+(native zen:method-implementation-name)
+(native zen:add-core-method-node)
+(native zen:find-nextmethod)
+(native zen:emit-one-expression)
+(native zen:emit-expressions)
+(native zen:emit-statements-code)
+(native zen:emit)
+(native zen:new-code)
+(native zen:object-size)
+(native zen:new-object)
+(native zen:set-object-class)
+(native zen:get-class-level)
+(native zen:get-object-slot)
+(native zen:set-object-slot)
+(native zen:reference-name)
+(native zen:new-core-class)
+(native zen:set-core-class)
+(native zen:tree-fold)
+(native zen:tree-fold-list)
+
+
+;;;
+;;;; Dialect
+;;;
+
+
+(native zen:get-dialect)
+(native zen:require-dialect)
+(native zen:register-declaration)
+(native zen:register-binding)
+(native zen:new-declaration-form)
+(native zen:new-special-form)
+(native zen:setup-declaration)
+(native zen:get-declaration-path)
+(native zen:get-declaration-toplevel)
+(native zen:walk)
+(native zen:walk-list)
+(native zen:get-and-expressions)
+(native zen:get-expression-source)
+(native zen:compose-helper)
+(native zen:new-special-expression)
+
+
+;;;
+;;;; Module
+;;;
+
+
+(native zen:iterate-module-declaration)
+
+
+;;;
+;;;; Walker
+;;;
+
+
+(native zen:parse-modifiers)
+(native zen:parse-keywords)
+(native zen:current-walker)
+(native zen:current-resume)
+(native zen:current-declaration)
+(native zen:current-declaration-name))

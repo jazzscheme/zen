@@ -1,0 +1,88 @@
+;;;=============
+;;;  ZenScheme
+;;;=============
+;;;
+;;;; Literals
+;;;
+
+
+(module zen.literals zen
+
+
+;;;
+;;;; Literal
+;;;
+
+
+(definition package (construct-literal name arguments)
+  (new Literal name arguments))
+
+
+;;;
+;;;; Boxed
+;;;
+
+
+(definition package (construct-boxed . rest)
+  (if (null? rest)
+      (new Boxed)
+    (new Boxed (car rest))))
+
+
+;;;
+;;;; Geometry
+;;;
+
+
+(definition package (construct-point h v)
+  (new Point h v))
+
+
+(definition package (construct-point$fl$ h v)
+  (new Point$fl$ h v))
+
+
+(definition package (construct-distance x y)
+  (new Distance x y))
+
+
+(definition package (construct-dimension width height)
+  (new Dimension width height))
+
+
+(definition package (construct-dimension$fl$ width height)
+  (new Dimension$fl$ width height))
+
+
+(definition package (construct-cell line col)
+  (new Cell line col))
+
+
+(definition package (construct-rect left top right bottom)
+  (new Rect left top right bottom))
+
+
+(definition package (construct-rect$fl$ left top right bottom)
+  (new Rect$fl$ left top right bottom))
+
+
+(definition package (construct-range start end)
+  (new Range start end))
+
+
+;;;
+;;;; Exception
+;;;
+
+
+(definition package (construct-exception-detail icon title location children)
+  (new Exception-Detail icon title location children))
+
+
+;;;
+;;;; Walk
+;;;
+
+
+(definition package (construct-walk-location unit-locator declaration-locator locat path)
+  (new Walk-Location unit-locator declaration-locator locat path)))
