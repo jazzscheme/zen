@@ -1,0 +1,77 @@
+;;;==============
+;;;  JazzScheme
+;;;==============
+;;;
+;;;; Project
+;;;
+
+
+(data jazz.ide.data.project
+
+
+(import (jazz.project))
+
+
+(form
+  (<Project>             name: kernel
+    (<Project-Directory>              directory: {Directory :context "runtime"}
+      (<Project-File>                 source: {File :context "runtime" "advise.scm"})
+      (<Project-File>                 source: {File :context "runtime" "base.scm"})
+      (<Project-File>                 source: {File :context "runtime" "build.scm"})
+      (<Project-File>                 source: {File :context "runtime" "common.scm"})
+      (<Project-File>                 source: {File :context "runtime" "configuration.scm"})
+      (<Project-File>                 source: {File :context "runtime" "crash.scm"})
+      (<Project-File>                 source: {File :context "runtime" "digest.scm"})
+      (<Project-File>                 source: {File :context "runtime" "install.scm"})
+      (<Project-File>                 source: {File :context "runtime" "readtable.scm"})
+      (<Project-File>                 source: {File :context "runtime" "record.scm"})
+      (<Project-File>                 source: {File :context "runtime" "settings.scm"})
+      (<Project-File>                 source: {File :context "runtime" "setup.scm"})
+      (<Project-File>                 source: {File :context "runtime" "unit.scm"})
+      (<Project-File>                 source: {File :context "runtime" "version.scm"})
+      (<Project-File>                 source: {File :context "runtime" "product.scm"})
+      (<Project-File>                 source: {File :context "runtime" "logging.scm"})
+      (<Project-File>                 source: {File :context "runtime" "embedded.scm"})
+      (<Project-File>                 source: {File :context "runtime" "binary.scm"})
+      (<Project-File>                 source: {File :context "runtime" "restricted.scm"})
+      (<Project-File>                 source: {File :context "runtime" "compile.scm"}))
+    (<Project-Directory>              directory: {Directory :context "syntax"}
+      (<Project-File>                 source: {File :context "syntax" "block.scm"})
+      (<Project-File>                 source: {File :context "syntax" "declares.scm"})
+      (<Project-File>                 source: {File :context "syntax" "expansion.scm"})
+      (<Project-File>                 source: {File :context "syntax" "features.scm"})
+      (<Project-File>                 source: {File :context "syntax" "header.scm"})
+      (<Project-File>                 source: {File :context "syntax" "macro.scm"})
+      (<Project-File>                 source: {File :context "syntax" "primitives.scm"})
+      (<Project-File>                 source: {File :context "syntax" "repository.scm"})
+      (<Project-File>                 source: {File :context "syntax" "runtime.scm"})
+      (<Project-File>                 source: {File :context "syntax" "structure.scm"})
+      (<Project-File>                 source: {File :context "syntax" "syntax.scm"})
+      (<Project-File>                 source: {File :context "syntax" "foreign.scm"})
+      (<Project-File>                 source: {File :context "syntax" "verbose.scm"})
+      (<Project-File>                 source: {File :context "syntax" "internal.scm"})
+      (<Project-File>                 source: {File :context "syntax" "unsafe.scm"})
+      (<Project-File>                 source: {File :context "syntax" "bundle.scm"}))
+    (<Project-Directory>              directory: {Directory :context "core"}
+      (<Project-File>                 source: {File :context "core" "base-runtime.scm"})
+      (<Project-File>                 source: {File :context "core" "base-syntax.scm"})
+      (<Project-File>                 source: {File :context "core" "class-classes.scm"})
+      (<Project-File>                 source: {File :context "core" "class-runtime.scm"})
+      (<Project-File>                 source: {File :context "core" "class-syntax.scm"})
+      (<Project-File>                 source: {File :context "core" "exception-classes.scm"})
+      (<Project-File>                 source: {File :context "core" "exception-runtime.scm"})
+      (<Project-File>                 source: {File :context "core" "generic-runtime.scm"})
+      (<Project-File>                 source: {File :context "core" "generic-syntax.scm"})
+      (<Project-File>                 source: {File :context "core" "unit-runtime.scm"}))
+    (<Project-Directory>              directory: {Directory :context "dialect"}
+      (<Project-File>                 source: {File :context "dialect" "dialect-development.scm"})
+      (<Project-File>                 source: {File :context "dialect" "dialect-expression.scm"})
+      (<Project-File>                 source: {File :context "dialect" "dialect-runtime.scm"})
+      (<Project-File>                 source: {File :context "dialect" "dialect-syntax.scm"}))
+    (<Project-Directory>              directory: {Directory :context "foundation"}
+      (<Project-File>                 source: {File :context "foundation" "foundation-runtime.scm"}))
+    (<Project-File>                   source: {File :context "boot.scm"})
+    (<Project-File>                   source: {File :context "build.scm"})
+    (<Project-File>                   source: {File :context "updates"})
+    (<Project-File>                   source: {File :context "versions"})
+    (<Project-File>                   source: {File :context "mu.scm"}))))
