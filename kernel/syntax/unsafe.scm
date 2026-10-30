@@ -221,7 +221,6 @@
 (zen:define-unsafe ^#interrupt-handler)
 (zen:define-unsafe ^#interrupt-vector-set!)
 (zen:define-unsafe ^#jazz?)
-(zen:define-unsafe ^#jazzstruct?)
 (zen:define-unsafe ^#keyword->string)
 (zen:define-unsafe ^#keyword-table)
 (zen:define-unsafe ^#keyword?)
@@ -231,6 +230,7 @@
 (zen:define-unsafe ^#load)
 (zen:define-unsafe ^#locat-container)
 (zen:define-unsafe ^#locat-start-position)
+(zen:define-unsafe ^#locat-end-position)
 (zen:define-unsafe ^#locat?)
 (zen:define-unsafe ^#make-f32vector)
 (zen:define-unsafe ^#make-f64vector)
@@ -282,7 +282,6 @@
 (zen:define-unsafe ^#readtable-copy)
 (zen:define-unsafe ^#readtable?)
 (zen:define-unsafe ^#real?)
-;; bongo
 (zen:define-unsafe ^#remq)
 (zen:define-unsafe ^#repl)
 (zen:define-unsafe ^#repl-channel-result-history-add)

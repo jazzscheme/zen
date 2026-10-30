@@ -102,9 +102,6 @@
 (define zen:zenini
   ".zenini")
 
-(define zen:buildini
-  ".buildini")
-
 
 (define (zen:load-if-exists file)
   (if (file-exists? file)
@@ -124,9 +121,6 @@
 (define (zen:process-zenini install?)
   (zen:load-configuration-files zen:zenini install?))
 
-(define (zen:process-buildini install?)
-  (zen:load-configuration-files zen:buildini install?))
-
 
 (define (zen:process-settings)
   (if zen:kernel-source-access?
@@ -143,10 +137,6 @@
 
 
 (zen:define-variable zen:manifest-needs-rebuild?
-  (lambda rest
-    #f))
-
-(zen:define-variable zen:build-repository-needs-sweep
   (lambda rest
     #f))
 
@@ -345,12 +335,8 @@
 ;;;
 
 
-(define (zen:compose-identifier . rest)
-  (%%string->symbol (zen:join-strings (map symbol->string rest) ".")))
-
-
 (define (zen:compose-reference . rest)
-  (%%string->symbol (zen:join-strings (map symbol->string rest) ":")))
+  (%%string->symbol (zen:join-strings (map symbol->string rest) "#")))
 
 
 ;;;
@@ -654,13 +640,6 @@
 
 (define (zen:zen-pathname suffix)
   (path-expand (string-append zen:kernel-source suffix)))
-
-
-(define (zen:build-dynamic-path destination-root source-path)
-  (let ((root (path-strip-trailing-directory-separator destination-root))
-        (branch (path-strip-directory (path-strip-trailing-directory-separator source-path)))
-        (repo (path-strip-directory (path-strip-trailing-directory-separator (zen:parent-directory source-path)))))
-    (string-append root "/" repo "/" branch "/")))
 
 
 ;;;

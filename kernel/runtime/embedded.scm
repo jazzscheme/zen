@@ -28,7 +28,7 @@
 
 (c-define (zen:zen-heartbeat) () void "zen_heartbeat" "extern"
   (zen:thread-heartbeat!)
-  (let ((thread-process 'zen.language.runtime:thread-process))
+  (let ((thread-process 'zen/language/runtime:thread-process))
     (if (%%global-var? thread-process)
         (let ((func (%%global-var-ref thread-process)))
           (if (not (%%unbound? func))

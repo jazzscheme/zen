@@ -20,14 +20,27 @@
 
 
 (zen:define-structure Repository () (constructor: %%make-repository predicate: zen:repository? accessors-type: macro)
-  ((name              getter: generate setter: generate)
-   (directory         getter: generate)
-   (library-root      getter: generate)
-   (library-directory getter: generate)
-   (binary?           getter: generate)
-   (packages-table    getter: generate setter: generate)
-   (dependencies      getter: generate)
-   (versions          getter: generate setter: generate)))
+  ((name      getter: generate setter: generate)
+   (directory getter: generate)
+   (binary?   getter: generate)
+   (versions  getter: generate setter: generate)))
+
+ 
+;;;
+;;;; Resource
+;;;
+
+
+;; A resource is a triplet (repository path . extension) representing a resource inside
+;; a repository. Compilation will use the path part to put the binary outputs under the
+;; build subdir of the architecture directory to enable a cross-compilation scheme.
+
+
+(zen:define-structure Resource () (constructor: %%make-resource accessors-type: macro)
+  ((repository  getter: generate)
+   (path        getter: generate)
+   (underscore? getter: generate)
+   (extension   getter: generate)))
 
 
 ;;;
@@ -42,11 +55,6 @@
 (zen:define-structure Package () (constructor: %%make-package predicate: zen:package? accessors-type: macro)
   ((repository    getter: generate)
    (name          getter: generate)
-   (parent        getter: generate)
-   (library-root  getter: generate)
-   (library-path  getter: generate)
-   (units-root    getter: generate)
-   (units-path    getter: generate)
    (install       getter: generate)
    (char-encoding getter: generate)
    (products      getter: generate)
@@ -80,23 +88,6 @@
    (deploy          getter: generate)
    (package         getter: generate)
    (descriptor      getter: generate)))
-
- 
-;;;
-;;;; Resource
-;;;
-
-
-;; A resource is a triplet (package path . extension) representing a resource inside
-;; a package. Compilation will use the path part to put the binary outputs under the
-;; build subdir of the architecture directory to enable a cross-compilation scheme.
-
-
-(zen:define-structure Resource () (constructor: %%make-resource accessors-type: macro)
-  ((package     getter: generate)
-   (path        getter: generate)
-   (underscore? getter: generate)
-   (extension   getter: generate)))
 
 
 ;;;

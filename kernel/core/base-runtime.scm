@@ -201,8 +201,8 @@
           (%%read-all-as-a-begin-expr-from-port
             port
             (%%current-readtable)
-            zen:wrap-datum&
-            zen:unwrap-datum&
+            ##wrap-datum
+            ##unwrap-datum
             (zen:readtable-start-syntax (%%current-readtable))
             #f)))
     (%%cdr (%%source-code (%%vector-ref begin-vector 1)))))
@@ -256,7 +256,7 @@
 (define (zen:identifier-name identifier)
   (%%assert (%%symbol? identifier)
     (let* ((str (%%symbol->string identifier))
-           (pos (zen:string-find-reversed str #\.)))
+           (pos (zen:string-find-reversed str #\/)))
       (if (%%not pos)
           identifier
         (%%string->symbol (%%substring str (%%fx+ pos 1) (%%string-length str)))))))
@@ -270,7 +270,8 @@
 (define (zen:reference-unit reference)
   (%%assert (%%symbol? reference)
     (let* ((str (%%symbol->string reference))
-           (pos (zen:string-find-reversed str #\:)))
+           (pos (or (zen:string-find-reversed str #\:)
+                    (zen:string-find-reversed str #\#))))
       (if (%%not pos)
           #f
         (%%string->symbol (%%substring str 0 pos))))))
@@ -279,7 +280,8 @@
 (define (zen:reference-name reference)
   (%%assert (%%symbol? reference)
     (let* ((str (%%symbol->string reference))
-           (pos (zen:string-find-reversed str #\:)))
+           (pos (or (zen:string-find-reversed str #\:)
+                    (zen:string-find-reversed str #\#))))
       (if (%%not pos)
           reference
         (%%string->symbol (%%substring str (%%fx+ pos 1) (%%string-length str)))))))
@@ -362,7 +364,7 @@
 
 (define (zen:source-locat expr)
   (if (%%source? expr)
-      (zen:source-locat& expr)
+      (%%source-locat expr)
     #f))
 
 
@@ -440,16 +442,11 @@
 (define (zen:locat-container locat)
   (%%locat-container locat))
 
-
-(define (zen:locat-position locat)
+(define (zen:locat-start locat)
   (%%locat-start-position locat))
 
-
-(define (zen:locat-start locat)
-  (zen:locat-start& locat))
-
 (define (zen:locat-end locat)
-  (zen:locat-end& locat))
+  (%%locat-end-position locat))
 
 
 (define (zen:locat->container/line/col locat)
@@ -462,11 +459,11 @@
       #f)))
 
 
-(define (zen:locat->path/container/start/end& locat)
+(define (zen:locat->path/container/start/end locat)
   (let ((container (%%locat-container locat)))
     (let ((path (%%container->path container))
-          (startpos (%%position->filepos (zen:locat-start& locat)))
-          (endpos (%%position->filepos (zen:locat-end& locat))))
+          (startpos (%%position->filepos (%%locat-start-position locat)))
+          (endpos (%%position->filepos (%%locat-end-position locat))))
       (%%list path
               container
               (%%filepos-line startpos)
@@ -515,46 +512,31 @@
 
 
 (define (zen:extract-location src)
-  (cond ((%%not src)
-         src)
-        ((zen:source&? src)
-         (let ((locat (zen:source-locat& src)))
-           (let ((start (zen:locat-start& locat))
-                 (end (zen:locat-end& locat)))
-             (%%vector (%%locat-container locat)
-                       (%%fx+ (%%filepos-line start) 1)
-                       (%%fx+ (%%filepos-col start) 1)
-                       (%%fx+ (%%filepos-line end) 1)
-                       (%%fx+ (%%filepos-col end) 1)))))
-        (else
-         (let ((locat (%%source-locat src)))
-           (let ((pos (%%locat-start-position locat)))
-             (%%vector (%%locat-container locat)
-                       (%%fx+ (%%filepos-line pos) 1)
-                       (%%fx+ (%%filepos-col pos) 1)))))))
+  (if (%%not src)
+      src
+    (let ((locat (%%source-locat src)))
+      (let ((start (%%locat-start-position locat))
+            (end (%%locat-end-position locat)))
+        (%%vector (%%locat-container locat)
+                  (%%fx+ (%%filepos-line start) 1)
+                  (%%fx+ (%%filepos-col start) 1)
+                  (%%fx+ (%%filepos-line end) 1)
+                  (%%fx+ (%%filepos-col end) 1))))))
 
 
 (define (zen:present-source obj)
   (define (present-src src)
     (let ((code (zen:source-code src)))
-      (if (zen:source&? src)
-          (let ((locat (zen:source-locat& src)))
-            (let ((start (zen:locat-start& locat))
-                  (end (zen:locat-end& locat)))
-              (%%vector 'source
-                        (zen:present-source code)
-                        (%%locat-container locat)
-                        (%%fx+ (%%filepos-line start) 1)
-                        (%%fx+ (%%filepos-col start) 1)
-                        (%%fx+ (%%filepos-line end) 1)
-                        (%%fx+ (%%filepos-col end) 1))))
-        (let ((locat (%%source-locat src)))
-          (let ((pos (%%locat-start-position locat)))
-            (%%vector 'source
-                      (zen:present-source code)
-                      (%%locat-container locat)
-                      (%%fx+ (%%filepos-line pos) 1)
-                      (%%fx+ (%%filepos-col pos) 1)))))))
+      (let ((locat (%%source-locat src)))
+        (let ((start (%%locat-start-position locat))
+              (end (%%locat-end-position locat)))
+          (%%vector 'source
+                    (zen:present-source code)
+                    (%%locat-container locat)
+                    (%%fx+ (%%filepos-line start) 1)
+                    (%%fx+ (%%filepos-col start) 1)
+                    (%%fx+ (%%filepos-line end) 1)
+                    (%%fx+ (%%filepos-col end) 1))))))
 
   (define (present-list lst)
     (cond ((%%pair? lst)

@@ -15,7 +15,7 @@
     "kernel/syntax/declares"
     "kernel/syntax/features"
     "kernel/syntax/block"
-    "kernel/syntax/bundle"
+    "kernel/syntax/library"
     "kernel/syntax/expansion"
     "kernel/syntax/primitives"
     "kernel/syntax/internal"
@@ -48,7 +48,9 @@
     "kernel/dialect/dialect-runtime"
     "kernel/dialect/dialect-expression"
     "kernel/dialect/dialect-development"
-    "kernel/foundation/foundation-runtime"))
+    "kernel/foundation/foundation-runtime"
+    "kernel/scheme/scheme-backend"
+    "kernel/scheme/scheme-dialect"))
 
 
 (define zen:Kernel-Setup

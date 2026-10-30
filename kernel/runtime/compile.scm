@@ -16,8 +16,8 @@
 
 (define (zen:manifest-references-valid? bin)
   (define (get-manifest)
-    (let ((digest-filepath (zen:digest-pathname (%%get-resource-package bin) bin))
-          (manifest-filepath (zen:manifest-pathname (%%get-resource-package bin) bin)))
+    (let ((digest-filepath (zen:digest-pathname (%%get-resource-repository bin) bin))
+          (manifest-filepath (zen:manifest-pathname (%%get-resource-repository bin) bin)))
       (zen:load-manifest digest-filepath manifest-filepath)))
   
   (define (module-references-valid? version-alist lst)
@@ -118,6 +118,7 @@
 
 
 (define (zen:find-unit-product unit-name)
+  #f #; ;; bazoo
   (let ((src (zen:find-unit-src unit-name)))
     (let ((package (%%get-resource-package src)))
       (let ((products (%%get-package-products package)))
@@ -181,9 +182,9 @@
 (define (zen:wrap-antivirus-hack-around manifest-name str)
   (cond-expand
     (windows (case manifest-name
-               ((zen.ui.view.Tab-View)
+               ((zen.ui/view/Tab-View)
                 (string-append "-Os " str))
-               ((zen.project.project.Project)
+               ((zen.project/project/Project)
                 (string-append "-Os " str))
                (else
                 str)))
@@ -248,15 +249,14 @@
           (update-bin? (or force? (not bin-uptodate?) (not references-valid?))))
       (let ((compile? (or update-obj? (and update-bin? (zen:link-objects?)))))
         (if compile?
-            (let ((package (%%get-resource-package src))
-                  (pathname (zen:resource-pathname src))
+            (let ((pathname (zen:resource-pathname src))
                   (bindir (zen:resource-build-dir src)))
-              (let ((build-package (zen:load/create-build-package package)))
+              (let ((build-repository zen:Build-Repository))
                 (zen:create-directories bindir)
                 (zen:with-extension-reader (%%get-resource-extension src)
                   (lambda ()
                     (parameterize ((zen:walk-for 'compile))
-                      (zen:compile-source-file src bin update-obj? update-bin? build-package output-language: output-language options: options custom-cc: custom-cc cc-options: cc-options ld-options: ld-options rpaths: rpaths unit-name: manifest-name)))))))
+                      (zen:compile-source-file src bin update-obj? update-bin? build-repository output-language: output-language options: options custom-cc: custom-cc cc-options: cc-options ld-options: ld-options rpaths: rpaths unit-name: manifest-name)))))))
         (if (or compile? (zen:force-outlines?))
             (let ((path (zen:binary-with-extension src ".otl")))
               (zen:create-directories (zen:pathname-dir path))
@@ -266,7 +266,7 @@
                     (zen:outline-generate declaration output))))))))))
 
 
-(define (zen:compile-source-file src bin update-obj? update-bin? build-package #!key (output-language #f) (options #f) (custom-cc #f) (cc-options #f) (ld-options #f) (rpaths #f) (unit-name #f) (platform zen:kernel-platform))
+(define (zen:compile-source-file src bin update-obj? update-bin? build-repository #!key (output-language #f) (options #f) (custom-cc #f) (cc-options #f) (ld-options #f) (rpaths #f) (unit-name #f) (platform zen:kernel-platform))
   (define bin-pathname-base
     (zen:binary-with-extension src ""))
   
@@ -338,8 +338,8 @@
             (zen:error "Compilation failed")))))
   
   (define (update-manifest)
-    (let ((digest-filepath (zen:digest-pathname build-package src))
-          (manifest-filepath (zen:manifest-pathname build-package src))
+    (let ((digest-filepath (zen:digest-pathname build-repository src))
+          (manifest-filepath (zen:manifest-pathname build-repository src))
           (src-filepath (zen:resource-pathname src))
           (references (let ((module-declaration (zen:get-catalog-entry unit-name)))
                         (cond ((%%is? module-declaration zen:Module-Declaration)

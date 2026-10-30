@@ -239,7 +239,8 @@
 
 (define (zen:break-reference identifier)
   (let ((str (%%symbol->string identifier)))
-    (let ((n (zen:string-find str #\:)))
+    (let ((n (or (zen:string-find str #\:)
+                 (zen:string-find str #\#))))
       (if (%%not n)
           (values identifier #f)
         (values (%%string->symbol (%%substring str 0 n))
@@ -247,7 +248,7 @@
 
 
 (define (zen:split-colon str)
-  (let ((n (zen:string-find str #\:)))
+  (let ((n (zen:string-find str #\#)))
     (if (%%not n)
         (values str #f)
       (values (%%substring str 0 n)

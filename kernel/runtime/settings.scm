@@ -26,13 +26,7 @@
 (zen:define-setting zen:build-repository
   #f)
 
-(zen:define-setting zen:zen-repository
-  #f)
-
 (zen:define-setting zen:repositories
-  #f)
-
-(zen:define-setting zen:dependencies
   #f)
 
 (zen:define-setting zen:absolutize-sources?

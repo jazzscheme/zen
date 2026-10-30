@@ -386,14 +386,9 @@
         int subtype = (*___UNTAG(obj) & ___SMASK) >> ___HTB;
 end-of-c-code
 
-(if (zen:gambitzen?)
-    #<<end-of-c-code
-        if (subtype == ___sJAZZ || subtype == ___sJAZZSTRUCT)
-end-of-c-code
     #<<end-of-c-code
         if (subtype == ___sJAZZ)
 end-of-c-code
-)
 
 #<<end-of-c-code
             ___RESULT = ___VECTORREF(obj,0);
@@ -518,7 +513,7 @@ end-of-c-code
 
 
 (define (zen:method-implementation-name class-name name)
-  (let ((name (zen:last (zen:split-string (%%symbol->string name) #\.))))
+  (let ((name (zen:last (zen:split-string (%%symbol->string name) #\/))))
     (%%string->symbol (%%string-append (%%symbol->string class-name) "^" name))))
 
 

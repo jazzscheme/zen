@@ -22,7 +22,6 @@
                          ld-options-prelude
                          ld-options
                          options)
-  ;; bongo
   (##gambuild 'C
               op
               output-dir
@@ -40,28 +39,7 @@
                 #f ;; bongo ;; pkg-config
                 #f ;; bongo ;; pkg-config-path
                 #f ;; bongo ;; meta-info-file
-                ))
-  #; ;; bongo
-  (if (zen:gambitzen?)
-      (##gambcomp 'C
-                  op
-                  output-dir
-                  input-filenames
-                  output-filename
-                  (%%memq 'verbose options)
-                  (%%memq 'hide-console options)
-                  (%%list (%%cons "CC_OPTIONS" cc-options)
-                          (%%cons "LD_OPTIONS_PRELUDE" ld-options-prelude)
-                          (%%cons "LD_OPTIONS" ld-options)))
-    (##gambcomp 'C
-                op
-                output-dir
-                input-filenames
-                output-filename
-                (%%memq 'verbose options)
-                (%%list (%%cons "CC_OPTIONS" cc-options)
-                        (%%cons "LD_OPTIONS_PRELUDE" ld-options-prelude)
-                        (%%cons "LD_OPTIONS" ld-options)))))
+                )))
 
 
 ;;;
@@ -150,35 +128,6 @@
                         (zen:get-version-recompile-references zen-version))
                     (set! rebuild-architecture? #t))))
             rebuild-architecture?)))))
-
-
-(define (zen:build-repository-needs-sweep-impl)
-  (let ((dir (%%string-append zen:kernel-install "build/kernel/")))
-    (let ((swept-file (%%string-append dir "version-swept")))
-      (define (determine-version)
-        (if (file-exists? swept-file)
-            (receive (version gambit-version gambit-stamp) (zen:load-version-file swept-file)
-              version)
-          (let ((version-file (%%string-append dir "kernel/version")))
-            (if (file-exists? version-file)
-                (receive (version gambit-version gambit-stamp) (zen:load-version-file version-file)
-                  version)
-              #f))))
-      
-      (let ((version (determine-version)))
-        (if (%%not version)
-            #f
-          (let ((sweep #f))
-            (zen:for-each-higher-zen-version version
-              (lambda (zen-version)
-                (let ((version-sweep (zen:get-version-sweep zen-version)))
-                  (if version-sweep
-                      (set! sweep version-sweep)))))
-            (if sweep
-                (begin
-                  (zen:create-directories dir)
-                  (zen:save-version-file swept-file)))
-            sweep))))))
 
 
 (define (zen:manifest-needs-rebuild?-impl manifest)
@@ -504,7 +453,7 @@
                 (load (source-file "kernel/syntax/declares"))
                 (load (source-file "kernel/syntax/features"))
                 (load (source-file "kernel/syntax/block"))
-                (load (source-file "kernel/syntax/bundle"))
+                (load (source-file "kernel/syntax/library"))
                 (load (source-file "kernel/syntax/foreign"))
                 (load (source-file "kernel/syntax/expansion"))
                 (load (source-file "kernel/syntax/primitives"))
@@ -526,7 +475,7 @@
           (compile-source-file "syntax/" "declares")
           (compile-source-file "syntax/" "features")
           (compile-source-file "syntax/" "block")
-          (compile-source-file "syntax/" "bundle")
+          (compile-source-file "syntax/" "library")
           (compile-source-file "syntax/" "foreign")
           (compile-source-file "syntax/" "expansion")
           (compile-source-file "syntax/" "primitives")
@@ -571,7 +520,9 @@
           (compile-source-file "dialect/" "dialect-runtime")
           (compile-source-file "dialect/" "dialect-expression")
           (compile-source-file "dialect/" "dialect-development")
-          (compile-source-file "foundation/" "foundation-runtime")))
+          (compile-source-file "foundation/" "foundation-runtime")
+          (compile-source-file "scheme/" "scheme-backend")
+          (compile-source-file "scheme/" "scheme-dialect")))
       
       (define (generate-architecture rebuild? rebuild-architecture?)
         (let ((file (kernel-file "_architecture.scm")))
@@ -662,7 +613,7 @@
                                     ,(kernel-file "syntax/declares")
                                     ,(kernel-file "syntax/features")
                                     ,(kernel-file "syntax/block")
-                                    ,(kernel-file "syntax/bundle")
+                                    ,(kernel-file "syntax/library")
                                     ,(kernel-file "syntax/foreign")
                                     ,(kernel-file "syntax/expansion")
                                     ,(kernel-file "syntax/primitives")
@@ -709,7 +660,9 @@
                                     ,(kernel-file "dialect/dialect-runtime")
                                     ,(kernel-file "dialect/dialect-expression")
                                     ,(kernel-file "dialect/dialect-development")
-                                    ,(kernel-file "foundation/foundation-runtime"))))
+                                    ,(kernel-file "foundation/foundation-runtime")
+                                    ,(kernel-file "scheme/scheme-backend")
+                                    ,(kernel-file "scheme/scheme-dialect"))))
                   (let ((link-info (product-file (%%string-append image-name ".link"))))
                     (call-with-output-file (list path: link-info eol-encoding: (zen:platform-eol-encoding zen:kernel-platform))
                       (lambda (output)
@@ -931,7 +884,7 @@
                             ,(kernel-file "syntax/declares.o")
                             ,(kernel-file "syntax/features.o")
                             ,(kernel-file "syntax/block.o")
-                            ,(kernel-file "syntax/bundle.o")
+                            ,(kernel-file "syntax/library.o")
                             ,(kernel-file "syntax/foreign.o")
                             ,(kernel-file "syntax/expansion.o")
                             ,(kernel-file "syntax/primitives.o")
@@ -978,7 +931,9 @@
                             ,(kernel-file "dialect/dialect-runtime.o")
                             ,(kernel-file "dialect/dialect-expression.o")
                             ,(kernel-file "dialect/dialect-development.o")
-                            ,(kernel-file "foundation/foundation-runtime.o")))
+                            ,(kernel-file "foundation/foundation-runtime.o")
+                            ,(kernel-file "scheme/scheme-backend.o")
+                            ,(kernel-file "scheme/scheme-dialect.o")))
               (main-file (product-file (string-append (main-filename) ".o")))
               (link-file (link-file)))
           (let ((c-files (append base-files (%%list main-file link-file))))
@@ -1195,9 +1150,10 @@
 
 (define (zen:determine-repositories destination-directory repositories #!optional (absolutize? #f))
   (if repositories
-      (zen:collect (lambda (path)
-                      (zen:determine-source-repository destination-directory path absolutize?))
-                    (zen:split-string repositories #\;))
+      (map (lambda (path)
+               (let ((name (%%string->symbol (zen:pathname-name path))))
+                 (%%cons name (zen:determine-source-repository destination-directory path absolutize?))))
+           (zen:split-string repositories #\;))
     '()))
 
 
@@ -1397,7 +1353,7 @@
   
   (let* ((product (zen:get-product product-name))
          (package (%%get-product-package product))
-         (library-base (zen:relocate-product-library-name-base zen:Build-Repository package (%%symbol->string product-name)))
+         (library-base (zen:relocate-product-library-name-base zen:Build-Repository (%%get-package-name package) (%%symbol->string product-name)))
          (library-dir (zen:pathname-dir library-base))
          (static-info (zen:static-info (list product-name))))
     (zen:with-numbered-library (string-append library-base "." zen:Library-Extension) #t 1
@@ -1424,7 +1380,6 @@
                                           (string-append (zen:resource-pathname obj) "." extension)))))
                                   sub-units)))
           (define (build-library)
-            (zen:load/create-build-package package)
             (zen:make-static-loader loader-s product-name sub-units)
             (compile-file-to-target loader-s output: loader-c module-name: loader-name)
             (compile-file loader-c options: '(obj) cc-options: "-D___DYNAMIC ")
@@ -1567,7 +1522,6 @@
 ;;;
 
 
-(zen:define-variable-override zen:build-repository-needs-sweep zen:build-repository-needs-sweep-impl)
 (zen:define-variable-override zen:manifest-needs-rebuild? zen:manifest-needs-rebuild?-impl)
 (zen:define-variable-override zen:get-changed-units zen:get-changed-units-impl)
 (zen:define-variable-override zen:push-changed-units zen:push-changed-units-impl)

@@ -250,16 +250,13 @@
 (define (zen:readtable-named-char-table-set! rt nc)
   (macro-readtable-named-char-table-set! rt nc))
 
-(define (zen:readtable-paren-keyword-set! rt key)
-  ;; bongo
+(define (zen:readtable-paren-handler-set! rt key)
   (macro-readtable-paren-handler-set! rt key))
 
-(define (zen:readtable-bracket-keyword-set! rt key)
-  ;; bongo
+(define (zen:readtable-bracket-handler-set! rt key)
   (macro-readtable-bracket-handler-set! rt key))
 
-(define (zen:readtable-brace-keyword-set! rt key)
-  ;; bongo
+(define (zen:readtable-brace-handler-set! rt key)
   (macro-readtable-brace-handler-set! rt key))
 
 (define (zen:readtable-start-syntax rt)

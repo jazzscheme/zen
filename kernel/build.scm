@@ -1469,11 +1469,6 @@
            arguments: `("-:daD"
                         "-make"
                         ,(symbol->string product)
-                        #; ;; dynamic-dependencies
-                        ,@(let ((dependencies (string-append (current-directory) ".dependencies")))
-                            (if (file-exists? dependencies)
-                                `("-dependencies" ,dependencies)
-                              '()))
                         ,@arguments)))))
 
 
@@ -1747,26 +1742,21 @@
       (apply zen:configure zen:unspecified-configuration arguments)))
   
   (define (make-command arguments output)
-    (zen:setup-kernel-build)
     (zen:make-symbols arguments #f))
   
   (define (download-command arguments output)
     (zen:download-symbols arguments #f))
   
   (define (install-command arguments output)
-    (zen:setup-kernel-install)
     (zen:install-symbols arguments #f))
   
   (define (deploy-command arguments output)
-    (zen:setup-kernel-install)
     (zen:deploy-symbol (car arguments) (map zen:stringify (cdr arguments))))
   
   (define (run-command arguments output)
-    (zen:setup-kernel-install)
     (zen:run-symbol (car arguments) (map zen:stringify (cdr arguments))))
   
   (define (test-command arguments output)
-    (zen:setup-kernel-install)
     (zen:test-symbol (car arguments) (map zen:stringify (cdr arguments))))
   
   (define (help-command arguments output)
@@ -1792,10 +1782,7 @@
     (if zen:display-backtrace?
         (continuation-capture
           (lambda (cont)
-            ;; bongo
-            (display-continuation-backtrace cont console)
-            #;
-            (display-continuation-backtrace cont console #t #t 100 100)))))
+            (display-continuation-backtrace cont console)))))
   
   (let ((console (console-port)))
     (zen:print (zen:format "ZenScheme Build System v{a}" (zen:present-version (zen:get-zen-version-number))) console)
@@ -1925,29 +1912,23 @@
                        (configure template (cdr arguments)))
                    (configure zen:unspecified-configuration arguments))))
               ((equal? action "make")
-               (zen:setup-kernel-build)
                (if (zen:make-symbols (map read-argument arguments) #t)
                    (exit 0)
                  (exit 1)))
               ((equal? action "download")
-               (zen:setup-kernel-install)
                (zen:download-symbols (map read-argument arguments) #t)
                (exit))
               ((equal? action "install")
-               (zen:setup-kernel-install)
                (zen:install-symbols (map read-argument arguments) #t)
                (exit))
               ((equal? action "deploy")
-               (zen:setup-kernel-install)
                (if (null? arguments)
                    (zen:deploy-symbol (zen:default-target) '())
                  (zen:deploy-symbol (read-argument (car arguments)) (cdr arguments))))
               ((equal? action "run")
-               (zen:setup-kernel-install)
                (zen:run-symbol (read-argument (car arguments)) (cdr arguments))
                (exit))
               ((equal? action "test")
-               (zen:setup-kernel-install)
                (zen:test-symbol (read-argument (car arguments)) (cdr arguments))
                (exit))
               ((or (equal? action "help") (equal? action "?"))
@@ -1966,7 +1947,6 @@
                  (zen:print "  mu debug" console))
                (exit))
               ((equal? action "debug")
-               (zen:setup-kernel-build)
                (zen:repl-debug-main))
               (else
                (fatal (zen:format "Unknown build system action: {a}" action))))))))
@@ -2024,19 +2004,6 @@
 
 (define zen:kernel-properties
   '())
-
-
-(define zen:setup-kernel-build
-  (let ((kernel-build-setup? #f))
-    (lambda ()
-      (if (not kernel-build-setup?)
-          (begin
-            (zen:process-buildini #f)
-            (set! kernel-build-setup? #t))))))
-
-
-(define (zen:setup-kernel-install)
-  (zen:setup-kernel-build))
 
 
 (define (zen:process-muini)

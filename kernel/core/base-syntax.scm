@@ -257,12 +257,12 @@
 ;;;
 
 
-(zen:define-macro (%%compose-identifier s1 s2)
-  `(%%string->symbol (%%string-append (%%symbol->string ,s1) "." (%%symbol->string ,s2))))
+(zen:define-macro (%%compose-kernel s1 s2)
+  `(%%string->symbol (%%string-append (%%symbol->string ,s1) ":" (%%symbol->string ,s2))))
 
 
 (zen:define-macro (%%compose-reference s1 s2)
-  `(%%string->symbol (%%string-append (%%symbol->string ,s1) ":" (%%symbol->string ,s2))))
+  `(%%string->symbol (%%string-append (%%symbol->string ,s1) "#" (%%symbol->string ,s2))))
 
 
 (zen:define-macro (%%compose-helper s1 s2)

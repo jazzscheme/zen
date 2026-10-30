@@ -16,18 +16,12 @@
         (display "Frames:" port)
         (newline port)
         ;; dump frames
-        ;; bongo
         (display-continuation-backtrace k port)
-        #;
-        (display-continuation-backtrace k port #f #f 500 500)
         (newline port)
         (display "Variables:" port)
         (newline port)
         ;; dump variables
-        ;; bongo
-        (display-continuation-backtrace k port)
-        #;
-        (display-continuation-backtrace k port #f #t 500 500)))))
+        (display-continuation-backtrace k port)))))
 
 
 (zen:set-crash-reporter zen:log-backtrace)
