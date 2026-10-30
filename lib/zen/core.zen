@@ -1,0 +1,60 @@
+;;;=============
+;;;  ZenScheme
+;;;=============
+;;;
+;;;; Zen Core
+;;;
+
+
+(module zen/core zen
+
+
+(export (zen.scheme/kernel))
+(import (zen.scheme/kernel))
+
+
+(native zen:walk-error)
+(native zen:lookup-reference)
+(native zen:find-declaration-child)
+(native zen:add-declaration-child)
+(native zen:require-declaration)
+(native zen:validate-arguments)
+(native zen:with-annotated-frame)
+(native zen:annotate-signature)
+(native zen:annotate-bindings)
+(native zen:emit-signature)
+(native zen:walk-parameters)
+(native zen:walk-body)
+
+
+;;;
+;;;; Declaration
+;;;
+
+
+;; registering globally is not correct and should be replaced
+;; by clean exported bindings just like we do for special forms
+(macro public (define-walker-declaration name dialect-name declaration-method binding-method)
+  `(begin
+     (register-declaration ',dialect-name (new-declaration-form ',name ,declaration-method))
+     (register-binding ',dialect-name (new-special-form ',name ,binding-method))))
+
+
+;;;
+;;;; Method
+;;;
+
+
+(macro public (define-method signature . body)
+  (let* ((name (car signature))
+         (parameters (cdr signature))
+         (class-name (caar parameters))
+         (object-parameter (cadr (car parameters)))
+         (extra-parameters (cdr parameters))
+         (implementation-name (method-implementation-name class-name name)))
+    `(begin
+       (define ,implementation-name
+         (let ((nextmethod (find-nextmethod ,class-name ',name)))
+           (lambda (,object-parameter ,@extra-parameters)
+             ,@body)))
+       (add-core-method-node ,class-name ',name ,implementation-name)))))

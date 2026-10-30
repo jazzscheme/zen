@@ -1,0 +1,23 @@
+;;;==============
+;;;  JazzScheme
+;;;==============
+;;;
+;;;; Project
+;;;
+
+
+(data jazz.ide.data.project
+
+
+(import (jazz.editor.jazz)
+        (jazz.project))
+
+
+(form
+  (<Project>        name: zen.scheme description-file: {File :context ".package"}
+    (<Project-File>                  source: {File :context "_.zen"})
+    (<Project-File>                  source: {File :context "core.zen"})
+    (<Project-File>                  source: {File :context "kernel.zen"})
+    (<Project-File>                  source: {File :context "runtime.zen"})
+    (<Project-File>                  source: {File :context "syntax-rules.zen"})
+    (<Project-File>                  source: {File :context "syntax.zen"}))))

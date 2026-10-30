@@ -1,0 +1,32 @@
+;;;==============
+;;;  JazzScheme
+;;;==============
+;;;
+;;;; Project
+;;;
+
+
+(data jazz.ide.data.project
+
+
+(import (jazz.project)
+        (jazz.editor.jazz))
+
+
+(form
+  (<Project>             name: zen      description-file: {File :context ".package"}
+    (<Project-Directory>                directory: {Directory :context "dialect"}
+      (<Project-File>                   source: {File :context "dialect" "runtime.scm"})
+      (<Project-File>                   source: {File :context "dialect" "_dialect.zen"})
+      (<Project-File>                   source: {File :context "dialect" "kernel.zen"})
+      (<Project-File>                   source: {File :context "dialect" "syntax.zen"}))
+    (<Project-Directory>                directory: {Directory :context "language"}
+      (<Jazz-File>       name: runtime  source: {File :context "language" "runtime.zen"})
+      (<Project-File>                   source: {File :context "language" "loop.zen"}))
+    (<Project-File>                     source: {File :context "install.scm"})
+    (<Jazz-File>         name: literals source: {File :context "literals.zen"})
+    (<Project-Directory>                directory: {Directory :context "backend"}
+      (<Project-File>                   source: {File :context "backend" "_backend.scm"})
+      (<Project-File>                   source: {File :context "backend" "core.scm"}))
+    (<Jazz-File>         name: core     source: {File :context "core.zen"})
+    (<Project-File>                     source: {File :context "_.zen"}))))

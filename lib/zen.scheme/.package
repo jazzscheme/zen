@@ -1,0 +1,14 @@
+(package zen.scheme
+  
+  (title "Scheme")
+  (description "Scheme dialect")
+  (authors "Guillaume Cartier")
+  (stage release)
+  (root "src")
+  (products (zen.scheme (update zen.scheme
+                                zen.scheme/core
+                                zen.scheme/kernel
+                                zen.scheme/syntax
+                                zen.scheme/syntax-rules)
+                        (dependencies zen.foundation)))
+  (project ".project"))

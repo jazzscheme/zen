@@ -6,5 +6,10 @@
 ;;;
 
 
+;; Repositories
+(zen:repositories "contrib;lib")
+
+
+;; Build options
 (zen:default-safety 'release)
 (zen:default-target 'zen)

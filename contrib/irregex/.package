@@ -1,0 +1,11 @@
+(package irregex
+  
+  (title "IrRegex")
+  (description "IrRegular Expressions")
+  (authors "Alex Shinn")
+  (stage release)
+  (root "src")
+  (products (irregex (update irregex
+                             irregex/implementation/irregex)
+                     (dependencies zen.scheme)))
+  (project ".project"))
