@@ -937,7 +937,6 @@
 (zen:define-synto (%%remove elem lst)
   (%%force-uniqueness (elem lst)
     `(%%check-list ,lst 2 (%%remove ,elem ,lst)
-       ;; bongo
        (^#remq ,elem ,lst))))
 
 (zen:define-synto (%%reverse lst)
@@ -1531,6 +1530,11 @@
   (%%force-uniqueness (locat)
     `(%%check-locat ,locat 1 (%%locat-start-position ,locat)
        (^#locat-start-position ,locat))))
+
+(zen:define-synto (%%locat-end-position locat)
+  (%%force-uniqueness (locat)
+    `(%%check-locat ,locat 1 (%%locat-end-position ,locat)
+       (^#locat-end-position ,locat))))
 
 (zen:define-synto (%%container->path container)
   `(^#container->path ,container))

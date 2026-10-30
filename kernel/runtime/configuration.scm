@@ -46,13 +46,7 @@
 
 
 (define (zen:configuration-directory configuration)
-  ;; dynamic repositories - build location mirrors the source location
-  ;; we will build kernel in $BINARY/$REPO/$BRANCH/kernel
-  ;; where: $BINARY is destination in the configuration file
-  ;; where: zen:source is in $SOURCE/$REPO/$BRANCH
-  (if (zen:getf (zen:get-configuration-properties configuration) dynamic?:)
-      (zen:build-dynamic-path (zen:get-configuration-destination configuration) zen:source)
-    (zen:destination-directory
-      (zen:get-configuration-name configuration)
-      (zen:get-configuration-destination configuration)
-      "./"))))
+  (zen:destination-directory
+    (zen:get-configuration-name configuration)
+    (zen:get-configuration-destination configuration)
+    "./")))

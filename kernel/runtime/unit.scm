@@ -277,10 +277,6 @@
 ;;;
 
 
-(define zen:Repository-Filename
-  ".repository")
-
-
 (zen:define-variable zen:Repositories
   '())
 
@@ -296,297 +292,36 @@
 
 
 (define (zen:prepare-repositories)
-  (define (all-repositories build)
-    (let ((source-access? zen:kernel-source-access?))
-      (let ((zen (and source-access? (zen:make-repository 'Zen "lib" (or (zen:zen-repository) zen:kernel-source))))
-            (binary-repositories (or zen:kernel-binary-repositories '()))
-            (source-repositories (or (and source-access? zen:kernel-source-repositories) '()))
-            (binary-dynamic-repositories '()) ;; dynamic-dependencies (or (zen:dependencies) '())
-            (source-dynamic-repositories '()) ;; dynamic-dependencies (or (and source-access? (zen:dependencies)) '())
-            (repositories (zen:repositories)))
-        (let ((binary-dynamic-root (zen:parent-directory (zen:parent-directory zen:kernel-install)))
-              (source-dynamic-root (zen:parent-directory (zen:parent-directory zen:source))))
-          (if (and (or binary-dynamic-root (null? binary-dynamic-repositories))
-                   (or source-dynamic-root (null? source-dynamic-repositories)))
-              (let ((all '()))
-                (define (add repo)
-                  ;; quicky around some repositories being in the list more than once
-                  (let ((name (%%get-repository-name repo))
-                        (binary? (%%get-repository-binary? repo)))
-                    (if (%%not (zen:find-if (lambda (repo)
-                                               (and (%%eq? (%%get-repository-name repo) name)
-                                                    (%%eqv? (%%get-repository-binary? repo) binary?)))
-                                             all))
-                        (set! all (%%cons repo all)))))
-                
-                (if build
-                    (add build))
-                (if zen
-                    (add zen))
-                (if repositories
-                    (for-each (lambda (dir)
-                                (add (zen:load-repository dir)))
-                              (zen:split-string repositories #\;)))
-                (for-each (lambda (path)
-                            (let ((dir (zen:absolutize-directory zen:kernel-install path)))
-                              (add (zen:load-repository dir name: 'Binaries error?: #f))))
-                          binary-repositories)
-                (for-each (lambda (path)
-                            (let ((dir (zen:absolutize-directory zen:kernel-install path)))
-                              (if dir
-                                  (add (zen:load-repository dir error?: #f)))))
-                          source-repositories)
-                #; ;; dynamic-dependencies
-                (for-each (lambda (entry)
-                            (let ((name (%%car entry))
-                                  (branch (%%cadr entry)))
-                              ;; add source dynamic repositories in $SOURCE/$REPO/$BRANCH
-                              (let ((path (%%string-append source-dynamic-root (zen:join-strings (list name branch) #\/))))
-                                (add (zen:load-repository path name: name error?: #f)))))
-                          source-dynamic-repositories)
-                #; ;; dynamic-dependencies
-                (for-each (lambda (entry)
-                            (let ((name (%%car entry))
-                                  (branch (%%cadr entry)))
-                              ;; add binary dynamic repositories in $BINARY/$REPO/$BRANCH
-                              (let ((path (%%string-append binary-dynamic-root (zen:join-strings (list name branch) #\/))))
-                                (add (zen:load-repository path name: name error?: #f)))))
-                          binary-dynamic-repositories)
-                (reverse all))
-            (zen:error "Invalid .dependencies"))))))
-  
-  (define (build-directory/lib)
+  (define (build-directory)
     (if (%%eq? zen:kernel-platform 'mac)
         (cond ((and zen:kernel-bundle-install (file-exists? (%%string-append zen:kernel-bundle-install "Libraries/lib")))
-               (values zen:kernel-bundle-install "Libraries/lib"))
+               (%%string-append zen:kernel-bundle-install "Libraries/lib"))
               ((and zen:kernel-bundle-contents (file-exists? (%%string-append zen:kernel-bundle-contents "Libraries/lib")))
-               (values zen:kernel-bundle-contents "Libraries/lib"))
+               (%%string-append zen:kernel-bundle-contents "Libraries/lib"))
               (else
-               (values (or (zen:build-repository) zen:kernel-install) "Libraries/lib")))
-      (values (or (zen:build-repository) zen:kernel-install) "lib")))
+               (%%string-append (or (zen:build-repository) zen:kernel-install) "Libraries/lib")))
+      (%%string-append (or (zen:build-repository) zen:kernel-install) "lib")))
   
-  (receive (directory lib) (build-directory/lib)
-    (let ((build (zen:make-repository 'Build lib directory binary?: #t dynamic?: #t)))
-      (set! zen:Build-Repository build)
-      (set! zen:Repositories (%%append zen:Repositories (all-repositories build))))))
+  (let ((build-dir (zen:dirname-normalize (build-directory))))
+    (let ((build (zen:make-repository 'build build-dir binary?: #t)))
+      (let ((source-specs (or (and zen:kernel-source-access? zen:kernel-source-repositories) '())))
+        (let ((source (map (lambda (spec)
+                             (let ((name (%%car spec))
+                                   (path (%%cdr spec)))
+                               (let ((dir (zen:absolutize-directory zen:kernel-install path)))
+                                 (zen:make-repository name dir))))
+                           source-specs)))
+          (set! zen:Build-Repository build)
+          (set! zen:Repositories (%%cons build source)))))))
 
 
-(define (zen:make-repository name library directory #!key (binary? #f) (dynamic? #f))
-  (define (create-repository repository-file)
-    (call-with-output-file (list path: repository-file eol-encoding: (zen:platform-eol-encoding zen:kernel-platform))
-      (lambda (output)
-        (display "(repository " output)
-        (display name output)
-        (if (or binary? library)
-            (begin
-              (newline output)
-              (newline output)))
-        (if binary?
-            (begin
-              (display "  (binary? #t)" output)
-              (newline output)))
-        (if library
-            (begin
-              (display "  (library " output)
-              (write library output)
-              (display ")" output)))
-        (display ")" output)
-        (newline output))))
-  
-  (define (repository-form)
-    `(repository ,name
-       ,@(if binary?
-             `((binary? ,binary?))
-           '())
-       ,@(if library
-             `((library ,library))
-           '())))
-  
-  (define (repository-inexistant)
-    (zen:error "{a} repository is inexistant: {a}" name directory))
-  
-  (if (or (%%not directory) (%%equal? directory "none"))
-      #f
-    (let ((directory (zen:dirname-normalize directory)))
-      (let ((repository-file (%%string-append directory zen:Repository-Filename)))
-        (cond ((file-exists? repository-file)
-               (zen:load-repository directory))
-              (dynamic?
-               (if (%%not zen:product)
-                   (begin
-                     (zen:create-directories directory)
-                     (create-repository repository-file)
-                     (if (file-exists? repository-file)
-                         (zen:load-repository directory)
-                       (repository-inexistant)))
-                 (zen:load-repository-form directory (repository-form))))
-              (else
-               (repository-inexistant)))))))
-
-
-(define (zen:load-repository directory #!key (name #f) (error? #t))
-  (define (load-repository directory)
-    (if (file-exists? directory)
-        (let ((repository-file (%%string-append directory zen:Repository-Filename)))
-          (if (file-exists? repository-file)
-              (call-with-input-file (%%list path: repository-file eol-encoding: 'cr-lf)
-                (lambda (input)
-                  (let ((form (read input)))
-                    (zen:load-repository-form directory form name: name))))
-            #f))
-      #f))
-  
-  (define (repository-inexistant)
-    (zen:error "Repository is inexistant: {a}" directory))
-  
-  (let ((directory (zen:dirname-normalize directory)))
-    (or (load-repository directory)
-        (if error?
-            (repository-inexistant)
-          #f))))
-
-
-(define (zen:load-repository-form directory form #!key (name #f))
-  (let ((name (or name (%%cadr form)))
-        (alist (%%cddr form)))
-    (let ((directory (zen:pathname-normalize directory))
-          (binary-pair (%%assq 'binary? alist))
-          (library-pair (%%assq 'library alist))
-          (dependencies-pair (%%assq 'dependencies alist)))
-      (let ((binary? (if binary-pair (%%cadr binary-pair) #f))
-            (library-root (if library-pair (%%cadr library-pair) #f))
-            (dependencies (if dependencies-pair (%%cdr dependencies-pair) '())))
-        (let ((library-directory (if (%%not library-root) directory (%%string-append directory library-root "/"))))
-          (%%make-repository name directory library-root library-directory binary? #f dependencies #f))))))
-
-
-(define (zen:install-repository directory/repository #!key (name #f))
-  (let ((repository (if (zen:repository? directory/repository) directory/repository (zen:load-repository directory/repository name: name))))
-    (set! zen:Repositories (%%append zen:Repositories (%%list repository)))
-    (if zen:setup-repositories-called?
-        (zen:setup-repository repository))
-    repository))
-
-
-(define (zen:install-repository-if-exists directory #!key (name #f))
-  (if (file-exists? directory)
-      (zen:install-repository directory name: name)))
-
-
-(define (zen:uninstall-repository repository)
-  (set! zen:Repositories (%%remove repository zen:Repositories)))
-
-
-(define (zen:require-repository name)
-  (or (zen:find-repository name)
-      (zen:error "Unknown repository: {s}" name)))
-
-
-(define (zen:find-repository name)
-  (let iter ((repositories zen:Repositories))
-    (if (%%null? repositories)
-        #f
-      (let ((repository (%%car repositories)))
-        (if (%%eq? (%%get-repository-name repository) name)
-            repository
-          (iter (%%cdr repositories)))))))
-
-
-(define (zen:find-package package-name)
-  (let iter ((repositories zen:Repositories))
-    (if (%%null? repositories)
-        #f
-      (let ((repository (%%car repositories)))
-        (if (%%get-repository-binary? repository)
-            (iter (%%cdr repositories))
-          (let ((package (zen:repository-find-package repository package-name)))
-            (if package
-                package
-              (iter (%%cdr repositories)))))))))
+(define (zen:make-repository name directory #!key (binary? #f))
+  (%%make-repository name directory binary? #f))
 
 
 (define (zen:repository-pathname repository path)
-  (%%string-append (%%get-repository-library-directory repository)
+  (%%string-append (%%get-repository-directory repository)
                    path))
-
-
-(define (zen:repository-packages-table repository)
-  (or (%%get-repository-packages-table repository)
-      (let ((table (%%make-table test: eq?)))
-        (%%set-repository-packages-table repository table)
-        (zen:repository-install-packages repository)
-        table)))
-
-
-(define (zen:sweep-build-repository remove-packages)
-  (if zen:Build-Repository
-      (begin
-        (zen:feedback "; sweeping binaries...")
-        (let ((table (zen:repository-packages-table zen:Build-Repository)))
-          (zen:table-iterate-safe table
-            (lambda (name package)
-              ;; when each repository has its own build repository we can then safely remove the dangling binary package
-              (cond ((zen:find-package name)
-                     (zen:sweep-build-package package))
-                    ((and (pair? remove-packages) (memq name remove-packages))
-                     (zen:remove-build-package name)))))))))
-
-
-(define (zen:sweep-build-package package)
-  (let ((units (%%apply append (map (lambda (descriptor)
-                                      (let ((name (zen:product-descriptor-name descriptor)))
-                                        (let ((update (zen:cond-expanded-product-descriptor-update name descriptor)))
-                                          (%%apply append (map (lambda (unit-name)
-                                                                 (zen:get-subunit-names unit-name walk-continue?: #t))
-                                                               update)))))
-                                    (%%get-package-products package)))))
-    (let ((resources (map (lambda (unit-name) (zen:find-unit-src unit-name)) units)))
-      (let ((referenced (map (lambda (resource) (%%get-resource-path resource)) resources))
-            (root (zen:package-root-pathname package "")))
-        (define (sweep-file pathname path)
-          (let ((spine (zen:pathname-spine path)))
-            (if (%%not (zen:some? (lambda (ref)
-                                     (%%equal? ref spine))
-                                   referenced))
-                (begin
-                  (zen:feedback "; removing {a}..." path)
-                  (if (%%not (zen:dry-run?))
-                      (delete-file pathname))))))
-        
-        (define (sweep-directory pathname path)
-          (if (%%not (or (%%equal? path "")
-                         (zen:some? (lambda (ref)
-                                       (zen:string-starts-with? ref path))
-                                     referenced)))
-              (begin
-                (zen:feedback "; removing {a}..." path)
-                (if (%%not (zen:dry-run?))
-                    (zen:delete-directory pathname)))
-            (for-each (lambda (name)
-                        (let ((pathname (%%string-append pathname name))
-                              (path (%%string-append path name)))
-                          (case (zen:pathname-type pathname)
-                            ((file)
-                             (sweep-file pathname path))
-                            ((directory)
-                             (sweep-directory (%%string-append pathname "/") (%%string-append path "/"))))))
-                      (zen:directory-content pathname))))
-        
-        (if (zen:pathname-exists? root)
-            (sweep-directory root ""))))))
-
-
-(define (zen:remove-build-package name)
-  (if zen:Build-Repository
-      (let ((library-directory (%%get-repository-library-directory zen:Build-Repository)))
-        (let ((package-directory (%%string-append library-directory (%%symbol->string name) "/")))
-          (if (file-exists? package-directory)
-              (begin
-                (zen:feedback "; removing {a}..." name)
-                (if (%%not (zen:dry-run?))
-                    (begin
-                      (zen:delete-directory package-directory)
-                      (%%table-clear (zen:repository-packages-table zen:Build-Repository) name)))))))))
 
 
 (zen:define-variable zen:setup-repositories-called?
@@ -594,100 +329,29 @@
 
 
 (define (zen:setup-repositories)
-  (for-each zen:setup-repository zen:Repositories)
   (zen:setup-manifest-repositories)
   (set! zen:setup-repositories-called? #t))
 
 
-(define (zen:setup-repository repository)
-  (let ((table (zen:repository-packages-table repository)))
-    (zen:table-iterate-safe table
-      (lambda (name package)
-        (zen:setup-package package)))
-    #; ;; this removes the randomness of scanning an eq? table
-       ;; and can sometimes be usefull for debugging purposes
-    (for-each (lambda (pair)
-                (zen:setup-package (%%cdr pair)))
-              (zen:sort-list (lambda (x y)
-                                (%%string<? (%%symbol->string (%%car x))
-                                            (%%symbol->string (%%car y))))
-                              (%%table->list table)))))
+(define (zen:find-package package-name)
+  (let ((src (zen:find-unit-src package-name)))
+    (and src
+         (let ((repo (%%get-resource-repository src))
+               (path (%%get-resource-path src)))
+           (let ((pathname (zen:pathname-brother (zen:repository-pathname repo path) ".package")))
+             (if (zen:pathname-exists? pathname)
+                 (zen:load-package repo package-name pathname)
+               #f))))))
 
 
-(define (zen:repository-packages repository)
-  (let ((table (zen:repository-packages-table repository))
-        (packages '()))
-    (zen:table-iterate table
-      (lambda (name package)
-        (set! packages (%%cons package packages))))
-    packages))
-
-
-(define (zen:repository-find-package repository package-name)
-  (%%table-ref (zen:repository-packages-table repository) package-name #f))
-
-
-(define (zen:repository-install-packages repository)
-  (define (repository-discover-packages repository)
-    (let ((table (%%get-repository-packages-table repository)))
-      (define (discover-packages parent library-directory packages)
-        (if (file-exists? library-directory)
-            (let iter ((dirnames (zen:directory-directories library-directory))
-                       (packages packages))
-                 (if (%%null? dirnames)
-                     packages
-                   (let ((dirname (%%car dirnames)))
-                     (let ((directory (%%string-append library-directory dirname "/")))
-                       (let ((package-pathname (%%string-append directory zen:Package-Filename)))
-                         (if (file-exists? package-pathname)
-                             (let ((package-name (%%string->symbol dirname)))
-                               (if (%%table-ref table package-name #f)
-                                   (iter (%%cdr dirnames) packages)
-                                 (let ((package (if (%%eq? repository zen:Build-Repository)
-                                                    (let ((source-package (zen:find-package package-name)))
-                                                      (if source-package
-                                                          (zen:load/create-build-package source-package)
-                                                        ;; when each repository has its own build repository we can then safely remove the dangling binary package
-                                                        (zen:load-package repository parent package-name package-pathname)))
-                                                  (zen:load-package repository parent package-name package-pathname))))
-                                   (iter (%%cdr dirnames) (%%cons package (let ((library-path (%%get-package-library-path package)))
-                                                                            (if library-path
-                                                                                (let ((library-directory (zen:repository-pathname (%%get-package-repository package) (%%string-append library-path "/"))))
-                                                                                  (discover-packages package library-directory packages))
-                                                                              packages)))))))
-                           (iter (%%cdr dirnames) packages)))))))
-          packages))
-      
-      (discover-packages #f (%%get-repository-library-directory repository) '())))
-  
-  (let ((table (%%get-repository-packages-table repository))
-        (packages (repository-discover-packages repository)))
-    (for-each (lambda (package)
-                (%%table-set! table (%%get-package-name package) package))
-              packages)
-    packages))
-
-
-(define (zen:repository-add-package repository package)
-  (let ((table (zen:repository-packages-table repository)))
-    (%%table-set! table (%%get-package-name package) package)))
-
-
-(define (zen:repository-remove-package repository package)
-  (let ((table (zen:repository-packages-table repository)))
-    (%%table-clear table (%%get-package-name package))))
-
-
-(define (zen:load-package repository parent package-name package-pathname)
+(define (zen:load-package repository package-name package-pathname)
   (call-with-input-file (%%list path: package-pathname eol-encoding: 'cr-lf)
     (lambda (input)
       (let ((form (read input)))
         (let ((name (%%cadr form))
               (alist (%%cddr form)))
           (if (%%eq? name package-name)
-              (let ((library (%%assq 'library alist))
-                    (root (%%assq 'root alist))
-                    (install (%%assq 'install alist))
+              (let ((install (%%assq 'install alist))
                     (char-encoding (%%assq 'char-encoding alist))
                     (products (%%assq 'products alist))
                     (profiles (%%assq 'profiles alist))
@@ -696,59 +360,17 @@
                     (description (%%assq 'description alist))
                     (authors (%%assq 'authors alist))
                     (stage (%%assq 'stage alist)))
-                (let ((package
-                        (zen:make-package repository name parent
-                          (if library (%%cadr library) #f)
-                          (if root (%%cadr root) #f)
-                          (if install (%%cadr install) #f)
-                          (if char-encoding (%%cadr char-encoding) #f)
-                          (if products (%%cdr products) '())
-                          (if profiles (%%cdr profiles) '())
-                          (if project (%%cadr project) #f)
-                          (if title (%%cadr title) #f)
-                          (if description (%%cadr description) #f)
-                          (if authors (%%cdr authors) #f)
-                          (if stage (%%cadr stage) #f))))
-                  (zen:cache-package-roots package)
-                  package))
+                (%%make-package repository name
+                  (if install (%%cadr install) #f)
+                  (if char-encoding (%%cadr char-encoding) #f)
+                  (if products (%%cdr products) '())
+                  (if profiles (%%cdr profiles) '())
+                  (if project (%%cadr project) #f)
+                  (if title (%%cadr title) #f)
+                  (if description (%%cadr description) #f)
+                  (if authors (%%cdr authors) #f)
+                  (if stage (%%cadr stage) #f)))
             (zen:error "Package at {s} is defining: {s}" package-pathname name)))))))
-
-
-(define (zen:load/create-build-package package)
-  (let* ((name (%%get-package-name package))
-         (parent (%%get-package-parent package))
-         (bin-parent (if parent (zen:load/create-build-package parent) #f))
-         (dir (%%string-append (if parent (%%string-append (%%get-package-library-path parent) "/") "") (%%symbol->string name) "/"))
-         (path (%%string-append dir zen:Package-Filename))
-         (src (zen:repository-pathname (%%get-package-repository package) path))
-         (dst (zen:repository-pathname zen:Build-Repository path)))
-    (define (updated-uptodate?)
-      (if (file-exists? dst)
-          (if (= (zen:file-last-modification-seconds src) (zen:file-last-modification-seconds dst))
-              #t
-            (if (%%string=? (digest-file src 'SHA-1) (digest-file dst 'SHA-1))
-                (begin
-                  (file-last-access-and-modification-times-set! dst (file-last-access-time src) (file-last-modification-time src))
-                  #t)
-              #f))
-        #f))
-    
-    (define (load-package)
-      (let ((package (zen:load-package zen:Build-Repository bin-parent name dst)))
-        (%%table-set! (zen:repository-packages-table zen:Build-Repository)
-                      name
-                      package)
-        package))
-    
-    (if (updated-uptodate?)
-        (or (zen:repository-find-package zen:Build-Repository name)
-            (load-package))
-      (begin
-        (zen:create-directories (zen:repository-pathname zen:Build-Repository dir))
-        (if (file-exists? dst)
-            (delete-file dst))
-        (zen:copy-file src dst)
-        (load-package)))))
 
 
 (define (zen:setup-package package)
@@ -764,14 +386,7 @@
   (define (inspect-repository repository)
     `(:repository
       ,(%%get-repository-name repository)
-      ,(%%get-repository-library-directory repository)
-      ,@(map inspect-package (zen:repository-packages repository))))
-  
-  (define (inspect-package package)
-    `(:package
-      ,(%%get-package-name package)
-      ,(%%get-package-units-root package)
-      ,(%%get-package-units-path package)))
+      ,(%%get-repository-directory repository)))
   
   `(,(inspect-path "./")
     ,(inspect-path "~/")
@@ -783,111 +398,42 @@
 ;;;
 
 
-(define zen:Package-Filename
-  ".package")
-
-
-(define (zen:make-package repository name parent library-root units-root install char-encoding products profiles project title description authors stage)
-  (let ((library-path (if (%%not library-root)
-                          #f
-                        (%%string-append (%%symbol->string name) "/" library-root)))
-        (units-path (if (%%not units-root)
-                        (%%symbol->string name)
-                      (%%string-append (%%symbol->string name) "/" units-root))))
-    (%%make-package repository name parent library-root library-path units-root units-path install char-encoding products profiles project title description authors stage)))
-
-
-(define (zen:package-root package)
-  (let ((parent (%%get-package-parent package)))
-    (%%string-append (let ((library-root (%%get-repository-library-root (%%get-package-repository package))))
-                       (if library-root
-                           (%%string-append library-root "/")
-                         ""))
-                     (if parent (%%string-append (%%get-package-library-path parent) "/") "")
-                     (%%symbol->string (%%get-package-name package)))))
-
-
-(define (zen:package-units-root package)
-  (let ((root (zen:package-root package))
-        (units-root (%%get-package-units-root package)))
-    (if (%%not units-root)
-        root
-      (%%string-append root "/" units-root))))
-
-
 (define (zen:package-pathname package path)
   (zen:repository-pathname (%%get-package-repository package)
-                            (%%string-append (%%symbol->string (%%get-package-name package)) "/" path)))
-
-
-(define (zen:package-root-pathname package path)
-  (zen:relocate-package-pathname (%%get-package-repository package) package path))
-
-
-(define (zen:relocate-package-pathname repository package path)
-  (let ((parent (%%get-package-parent package)))
-    (zen:repository-pathname repository
-      (%%string-append (if parent (%%string-append (%%get-package-library-path parent) "/") "")
-                       (%%get-package-units-path package)
-                       "/"
-                       (or path "")))))
-
-
-(define (zen:iterate-packages binary? proc)
-  (let iter-repo ((repositories zen:Repositories))
-    (if (%%not (%%null? repositories))
-        (let ((repository (%%car repositories)))
-          (if (%%neq? binary? (%%get-repository-binary? repository))
-              (iter-repo (%%cdr repositories))
-            (let iter ((packages (zen:repository-packages repository)))
-              (if (%%null? packages)
-                  (iter-repo (%%cdr repositories))
-                (let ((package (%%car packages)))
-                  (proc package)
-                  (iter (%%cdr packages))))))))))
+                           (%%string-append (%%symbol->string (%%get-package-name package)) "/" path)))
 
 
 (define (zen:find-resource pathname)
-  (let iter-repo ((repositories zen:Repositories))
+  (let iter ((repositories zen:Repositories))
     (if (%%null? repositories)
         #f
-      (let iter ((packages (zen:repository-packages (%%car repositories))))
-        (if (%%null? packages)
-            (iter-repo (%%cdr repositories))
-          (let ((package (%%car packages)))
-            (let ((package-pathname (zen:package-root-pathname package "")))
-              (let ((pathname-length (%%string-length pathname))
-                    (package-length (%%string-length package-pathname)))
-                (if (and (%%fx<= package-length pathname-length)
-                         (%%string=? (%%substring pathname 0 package-length) package-pathname))
-                    (let* ((path (%%substring pathname package-length pathname-length))
-                           (underscore? #f)
-                           (extension (and path (zen:pathname-extension path))))
-                      ;; remove extension
-                      (if extension
-                          (set! path (%%substring path 0 (%%fx- (%%string-length path) (%%fx+ 1 (%%string-length extension))))))
-                      ;; remove redundant underscore prefixed name
-                      (let ((len (%%string-length path))
-                            (pos (zen:string-find-reversed path #\/)))
-                        (if pos
-                            (let ((name-pos (%%fx+ pos 2)))
-                              (if (and (%%fx< name-pos len) (%%eqv? (%%string-ref path (%%fx+ pos 1)) #\_))
-                                  (let* ((name (%%substring path name-pos len))
-                                         (name-length (%%string-length name))
-                                         (previous-pos (%%fx- pos name-length)))
-                                    (if (and (%%fx>= previous-pos 0) (%%string=? (%%substring path previous-pos pos) name))
-                                        (begin
-                                          (set! path (%%substring path 0 pos))
-                                          (set! underscore? #t))))))))
-                      (%%make-resource package path underscore? extension))
-                  (iter (%%cdr packages)))))))))))
-
-
-(define (zen:find-pathname-unit pathname)
-  (let ((resource (zen:find-resource pathname)))
-    (if resource
-        (zen:path->name (%%get-resource-path resource))
-      #f)))
+      (let ((repository (%%car repositories)))
+        (let ((repository-pathname (zen:repository-pathname repository "")))
+          (let ((pathname-length (%%string-length pathname))
+                (repository-length (%%string-length repository-pathname)))
+            (if (and (%%fx<= repository-length pathname-length)
+                     (%%string=? (%%substring pathname 0 repository-length) repository-pathname))
+                (let* ((path (%%substring pathname repository-length pathname-length))
+                       (underscore? #f)
+                       (extension (and path (zen:pathname-extension path))))
+                  ;; remove extension
+                  (if extension
+                      (set! path (%%substring path 0 (%%fx- (%%string-length path) (%%fx+ 1 (%%string-length extension))))))
+                  ;; remove redundant underscore prefixed name
+                  (let ((len (%%string-length path))
+                        (pos (zen:string-find-reversed path #\/)))
+                    (if pos
+                        (let ((name-pos (%%fx+ pos 2)))
+                          (if (and (%%fx< name-pos len) (%%eqv? (%%string-ref path (%%fx+ pos 1)) #\_))
+                              (let* ((name (%%substring path name-pos len))
+                                     (name-length (%%string-length name))
+                                     (previous-pos (%%fx- pos name-length)))
+                                (if (and (%%fx>= previous-pos 0) (%%string=? (%%substring path previous-pos pos) name))
+                                    (begin
+                                      (set! path (%%substring path 0 pos))
+                                      (set! underscore? #t))))))))
+                  (%%make-resource repository path underscore? extension))
+              (iter (%%cdr repositories)))))))))
 
 
 ;;;
@@ -895,6 +441,7 @@
 ;;;
 
 
+#; ;; bazoo
 (define (zen:gather-profiles)
   (let iter-repo ((repositories zen:Repositories) (profiles '()))
     (if (%%null? repositories)
@@ -902,7 +449,7 @@
       (let ((repository (%%car repositories)))
         (if (%%get-repository-binary? repository)
             (iter-repo (%%cdr repositories) profiles)
-          (let iter ((packages (zen:repository-packages repository)) (profiles profiles))
+          (let iter ((packages (zen:repository-packages-list repository)) (profiles profiles))
             (if (%%null? packages)
                 (iter-repo (%%cdr repositories) profiles)
               (let ((package (%%car packages)))
@@ -941,29 +488,12 @@
 ;;;
 
 
-(define (zen:lower-case-unit-name? unit-name)
-  (define (first-char-of-last-name str)
-    (let loop ((offset (%%fx- (%%string-length str) 1)))
-         (let ((ch (%%string-ref str offset)))
-           (cond ((%%char=? #\. (%%string-ref str offset))
-                  (if (%%fx< (%%fx+ offset 1) (%%string-length str))
-                      (%%string-ref str (%%fx+ 1 offset))
-                    (zen:error "Unit name {a} ends with a ." str)))
-                 ((%%fx= offset 0)
-                  ch)
-                 (else
-                  (loop (%%fx- offset 1)))))))
-  
-  (let ((first-char (first-char-of-last-name (%%symbol->string unit-name))))
-    (and (%%char<=? #\a first-char) (%%char<=? first-char #\z))))
-
-
 (define (zen:find-unit-src unit-name #!key (extensions #f) (error? #t))
-  (define (find-src package path)
+  (define (find-src repository path)
     (define (try path underscore?)
       (define (try-extension extension)
-        (if (file-exists? (zen:package-root-pathname package (%%string-append path "." extension)))
-            (%%make-resource package path underscore? extension)
+        (if (file-exists? (zen:repository-pathname repository (%%string-append path "." extension)))
+            (%%make-resource repository path underscore? extension)
           #f))
       
       (let iter ((extensions (or extensions '("zen" "scm"))))
@@ -972,36 +502,20 @@
              (or (try-extension (%%car extensions))
                  (iter (%%cdr extensions))))))
     
-    (if (and (file-exists? (zen:package-root-pathname package path))
-             ;; why was this arbitrary test necessary?
-             #;
-             (zen:lower-case-unit-name? unit-name))
-        (try (%%string-append path "/_" (zen:pathname-name path)) #t)
+    (if (file-exists? (zen:repository-pathname repository path))
+        (or (try (%%string-append path "/_" (zen:pathname-name path)) #t)
+            (try (%%string-append path "/_") #t))
       (try path #f)))
   
-  (continuation-capture
-    (lambda (return)
-      (let ((path (zen:name->path unit-name)))
-        (for-each (lambda (package)
-                    (let ((src (find-src package path)))
-                      (if src
-                          (continuation-return return src))))
-                  (zen:cached-packages zen:*source-packages-cache* unit-name))
-        (zen:iterate-packages #f
-          (lambda (package)
-            (let ((src (find-src package path)))
-              (if src
-                  (begin
-                    (zen:cache-package zen:*source-packages-cache* unit-name package)
-                    #; ;; test
-                    (zen:validate-repository-unicity (%%get-package-repository package)
-                                                      unit-name
-                                                      (lambda (package)
-                                                        (find-src package path)))
-                    (continuation-return return src)))))))
-      (if error?
-          (zen:error "Unable to find unit source: {s}" unit-name)
-        #f))))
+  (let ((path (%%symbol->string unit-name)))
+    (let iter ((repositories zen:Repositories))
+         (if (%%null? repositories)
+             (if error?
+                 (zen:error "Unable to find unit source: {s}" unit-name)
+               #f)
+           (let ((repository (%%car repositories)))
+             (or (find-src repository path)
+                 (iter (%%cdr repositories))))))))
 
 
 (define (zen:require-unit-src unit-name)
@@ -1019,27 +533,28 @@
              (%%memv unit-name interpreted?)))))
   
   (define (find-unit-binaries src)
-    (define (find package path extension)
+    (define (find repository path extension)
       (define (try path underscore?)
         ;; we only test .o1 and let gambit find the right file by returning no extension when found
-        (if (file-exists? (zen:package-root-pathname package (%%string-append path extension)))
-            (%%make-resource package path underscore? #f)
+        (if (file-exists? (zen:repository-pathname repository (%%string-append path extension)))
+            (%%make-resource repository path underscore? #f)
           #f))
       
-      (if (and (file-exists? (zen:package-root-pathname package path))
-               (zen:lower-case-unit-name? unit-name))
-          (try (%%string-append path "/_" (zen:pathname-name path)) #t)
+      (if (file-exists? (zen:repository-pathname repository path))
+          (or
+            (try (%%string-append path "/_" (zen:pathname-name path)) #t)
+            (try (%%string-append path "/_") #t))
         (try path #f)))
     
-    (define (find-uptodate package path)
-      (let ((obj (find package path ".o"))
-            (bin (find package path ".o1")))
+    (define (find-uptodate repository path)
+      (let ((obj (find repository path ".o"))
+            (bin (find repository path ".o1")))
         (let ((manifest (let ((obj/bin (or obj bin)))
                           (and obj/bin
                                (zen:load-updated-manifest
                                  unit-name
-                                 (zen:digest-pathname (%%get-resource-package obj/bin) obj/bin)
-                                 (zen:manifest-pathname (%%get-resource-package obj/bin) obj/bin)
+                                 (zen:digest-pathname (%%get-resource-repository obj/bin) obj/bin)
+                                 (zen:manifest-pathname (%%get-resource-repository obj/bin) obj/bin)
                                  (and src (zen:resource-pathname src)))))))
           (let ((uptodate? (or (%%not src)
                                (and manifest
@@ -1051,27 +566,8 @@
                         manifest)
               (values #f #f #f))))))
     
-    (continuation-capture
-      (lambda (return)
-        (let ((path (zen:name->path unit-name)))
-          (for-each (lambda (package)
-                      (receive (obj bin manifest) (find-uptodate package path)
-                        (if manifest
-                            (continuation-return return (values obj bin manifest)))))
-                    (zen:cached-packages zen:*binary-packages-cache* unit-name))
-          (zen:iterate-packages #t
-            (lambda (package)
-              (receive (obj bin manifest) (find-uptodate package path)
-                (if manifest
-                    (begin
-                      (zen:cache-package zen:*binary-packages-cache* unit-name package)
-                      #; ;; test
-                      (zen:validate-repository-unicity (%%get-package-repository package)
-                                                        unit-name
-                                                        (lambda (package)
-                                                          (find-bin package path)))
-                      (continuation-return return (values obj bin manifest))))))))
-        (values #f #f #f))))
+    (let ((path (%%symbol->string unit-name)))
+      (find-uptodate zen:Build-Repository path)))
   
   (let ((src (zen:find-unit-src unit-name extensions: extensions error?: #f))
         (image-unit (zen:get-image-unit unit-name)))
@@ -1143,98 +639,6 @@
     (%%string=? (%%get-image-unit-compile-time-hash image-unit) source-hash)))
 
 
-(define (zen:validate-repository-unicity repository unit-name proc)
-  (define (repository-unique? repository proc)
-    (let iter ((packages (zen:repository-packages repository))
-               (found? #f))
-         (if (%%null? packages)
-             #t
-           (let ((package (%%car packages)))
-             (if (proc package)
-                 (if found?
-                     #f
-                   (iter (%%cdr packages) #t))
-               (iter (%%cdr packages) found?))))))
-  
-  (if (%%not (repository-unique? repository proc))
-      (zen:error "Found duplicate resource in {a} repository: {s}"
-                  (or (%%get-repository-name repository) "anonymous")
-                  unit-name)))
-
-
-;;;
-;;;; Cache
-;;;
-
-
-;; This is a cache of
-;;   - every subdirectory of level 2 and
-;;   - every subdirectory of level 1 that contains files
-;; It associates the directory name as a symbol to a list of packages containing it
-;; Stopping at level 2 is a heuristic decision to minimize cache size and the need to refresh
-;; it while going deep enough so directory names are unique in a high percentage of cases
-
-
-(define zen:*binary-packages-cache*
-  (%%make-table test: eq?))
-
-(define zen:*source-packages-cache*
-  (%%make-table test: eq?))
-
-
-(define (zen:cache-package cache unit-name package)
-  (zen:with-cached-prefix unit-name
-    (lambda (prefix singleton-prefix)
-      (let ((packages (%%table-ref cache prefix '())))
-        (if (%%not (%%memq package packages))
-            (%%table-set! cache prefix (%%cons package packages)))))))
-
-
-(define (zen:cached-packages cache unit-name)
-  (zen:with-cached-prefix unit-name
-    (lambda (prefix singleton-prefix)
-      (or (%%table-ref cache prefix #f)
-          (if singleton-prefix
-              (%%table-ref cache singleton-prefix '())
-            '())))))
-
-
-;; return as symbols the first 1 or 2 parts and the first part if there exactly 2 parts
-(define (zen:with-cached-prefix unit-name proc)
-  (let ((name (%%symbol->string unit-name)))
-    (let ((first-period (zen:string-find name #\.)))
-      (if first-period
-          (let ((second-period (zen:string-find name #\. (%%fx+ first-period 1))))
-            (if second-period
-                (proc (%%string->symbol (%%substring name 0 second-period)) #f)
-              (proc unit-name (%%string->symbol (%%substring name 0 first-period)))))
-        (proc unit-name #f)))))
-
-
-;; cache every subdirectory of level 2 and every subdirectory of level 1 that contains files
-(define (zen:cache-package-roots package)
-  (let ((cache (if (%%get-repository-binary? (%%get-package-repository package))
-                   zen:*binary-packages-cache*
-                 zen:*source-packages-cache*))
-        (toplevel-dir (zen:package-root-pathname package "")))
-    (if (file-exists? toplevel-dir)
-        (for-each (lambda (first-part)
-                    (let ((first-dir (string-append toplevel-dir first-part "/")))
-                      (if (file-exists? first-dir)
-                          (let ((has-files? #f))
-                            (for-each (lambda (second-part)
-                                        (let ((second-path (%%string-append first-dir second-part)))
-                                          (case (zen:pathname-type second-path)
-                                            ((file) (set! has-files? #t))
-                                            ((directory) (let ((unit-name (%%string->symbol (string-append first-part "." second-part))))
-                                                           (zen:cache-package cache unit-name package))))))
-                                      (zen:directory-content first-dir))
-                            (if has-files?
-                                (let ((unit-name (%%string->symbol first-part)))
-                                  (zen:cache-package cache unit-name package)))))))
-                  (zen:directory-directories toplevel-dir)))))
-
-
 ;;;
 ;;;; Debug
 ;;;
@@ -1246,24 +650,24 @@
 
 (define (zen:load-debuggee)
   (zen:load-debuggee-units)
-  (zen:load-unit 'zen.debuggee.setup)
-  (zen:load-unit 'zen.debuggee.update))
+  (zen:load-unit 'zen.debuggee/setup)
+  (zen:load-unit 'zen.debuggee/update))
 
 
 (define (zen:load-debuggee-units)
   (zen:load-unit 'zen)
   (zen:load-unit 'zen.debuggee)
-  (zen:load-unit 'zen.debuggee.base)
-  (zen:load-unit 'zen.debuggee.stub)
-  (zen:load-unit 'zen.debuggee.zen)
-  (zen:load-unit 'zen.debuggee.zen.autoload)
-  (zen:load-unit 'zen.debuggee.zen.autoload-external)
-  (zen:load-unit 'zen.debuggee.zen.Zen-Debuggee-Frame)
-  (zen:load-unit 'zen.debuggee.zen.Zen-Debuggee-Process)
-  (zen:load-unit 'zen.debuggee.zen.Zen-Debuggee-Restart)
-  (zen:load-unit 'zen.debuggee.zen.Zen-Debuggee-Stop)
-  (zen:load-unit 'zen.debuggee.zen.Zen-Debuggee-Thread)
-  (zen:load-unit 'zen.debugger.stub))
+  (zen:load-unit 'zen.debuggee/base)
+  (zen:load-unit 'zen.debuggee/stub)
+  (zen:load-unit 'zen.debuggee/zen)
+  (zen:load-unit 'zen.debuggee/zen/autoload)
+  (zen:load-unit 'zen.debuggee/zen/autoload-external)
+  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Frame)
+  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Process)
+  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Restart)
+  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Stop)
+  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Thread)
+  (zen:load-unit 'zen.debugger/stub))
 
 
 ;;;
@@ -1276,30 +680,14 @@
     (let iter ((scan products))
          (if (%%null? scan)
              #f
-           (let ((product (%%car scan)))
-             (if (zen:product-descriptor-named? product name)
-                 product
+           (let ((descriptor (%%car scan)))
+             (if (%%eq? (zen:product-descriptor-name descriptor) name)
+                 descriptor
                (iter (%%cdr scan)))))))
   
-  (let ((binary-package #f)
-        (binary-descriptor #f))
-    (let iter-repo ((repositories zen:Repositories))
-      (if (%%null? repositories)
-          (values binary-package binary-descriptor)
-        (let ((repository (%%car repositories)))
-          (let iter ((packages (zen:repository-packages (%%car repositories))))
-            (if (%%null? packages)
-                (iter-repo (%%cdr repositories))
-              (let ((package (%%car packages)))
-                (let ((pair (find-descriptor (%%get-package-products package))))
-                  (if pair
-                      (cond ((%%get-repository-binary? repository)
-                             (set! binary-package package)
-                             (set! binary-descriptor pair)
-                             (iter (%%cdr packages)))
-                            (else
-                             (values package pair)))
-                    (iter (%%cdr packages))))))))))))
+  (let ((package (zen:find-package name)))
+    (and package
+         (find-descriptor (%%get-package-products package)))))
 
 
 (define (zen:product-descriptor-named? descriptor name)
@@ -1517,10 +905,8 @@
 
 
 (define (zen:get-product-descriptor name)
-  (receive (package descriptor) (zen:find-product-descriptor name)
-    (if (and package descriptor)
-        (values package descriptor)
-      (zen:error "Unable to find product: {s}" name))))
+  (or (zen:find-product-descriptor name)
+      (zen:error "Unable to find product: {s}" name)))
 
 
 (define (zen:get-product name)
@@ -1528,7 +914,7 @@
     (or (%%table-ref zen:Products-Table name #f)
         (zen:error "Unable to find registered product: {s}" name)))
 
-  (receive (package descriptor) (zen:get-product-descriptor name)
+  (let ((descriptor (zen:get-product-descriptor name)))
     (let ((name (zen:product-descriptor-name descriptor)) ; because of aliases
           (unit (zen:product-descriptor-product descriptor)))
       (if unit
@@ -1546,7 +932,7 @@
             #f
             #f
             #f
-            package
+            #f
             descriptor))))))
 
 
@@ -1564,28 +950,6 @@
     (if zen:debugger
         (zen:load-debuggee))
     product))
-
-
-#; ;; dynamic-dependencies
-(define (zen:adjust-build-repository product)
-  ;; dynamic repositories - build location mirrors the source location
-  ;; we want to build in $BINARY/$REPO/$BRANCH
-  ;; where: kernel.exe is in $BINARY/zen/master
-  ;; where: source repo is in $SOURCE/$REPO/$BRANCH
-  ;; zen:Build-Repository is the destination
-  ;; zen:Repositories is used to locate which files are up-to-date
-  (if (zen:getf zen:kernel-properties dynamic?:)
-      (let ((product-source-directory (%%get-repository-directory (%%get-package-repository (%%get-product-package product))))
-            (kernel-root-directory (path-directory (path-strip-trailing-directory-separator
-                                                     (path-directory (path-strip-trailing-directory-separator
-                                                                       zen:kernel-install))))))
-        (let ((product-build-directory (zen:build-dynamic-path kernel-root-directory product-source-directory))
-              (current-build-directory (%%get-repository-directory zen:Build-Repository)))
-          (if (not (equal? product-build-directory current-build-directory))
-              (let ((new-build-repository (zen:make-repository 'Build "lib" product-build-directory binary?: #t dynamic?: #t)))
-                (zen:setup-repository new-build-repository)
-                (set! zen:Repositories (cons new-build-repository (zen:remove zen:Build-Repository zen:Repositories)))
-                (set! zen:Build-Repository new-build-repository)))))))
 
 
 (define (zen:register-product-run name proc)
@@ -1662,8 +1026,6 @@
 
 (define (zen:update-product name)
   (let ((product (zen:setup-product name)))
-    #; ;; dynamic-dependencies
-    (zen:adjust-build-repository product)
     (let ((update (%%get-product-update product))
           (descriptor (%%get-product-descriptor product)))
       (if update
@@ -1679,8 +1041,6 @@
 
 (define (zen:build-product name)
   (let ((product (zen:setup-product name)))
-    #; ;; dynamic-dependencies
-    (zen:adjust-build-repository product)
     (let ((build (%%get-product-build product))
           (descriptor (%%get-product-descriptor product)))
       (zen:feedback "make {a}" name)
@@ -1768,7 +1128,7 @@
                           (begin
                             (%%table-set! subproduct-table subname #t)
                             (download subname))))
-                    (receive (package descriptor) (zen:get-product-descriptor name)
+                    (let ((descriptor (zen:get-product-descriptor name)))
                       (zen:cond-expanded-product-descriptor-dependencies name descriptor))))))
     
     (download name)))
@@ -1827,9 +1187,10 @@
         (jobs (or zen:jobs (zen:build-jobs) zen:jobs-default))
         (stop-build? #f))
     (define (key-product? name)
-      (%%memq name '(contrib.irregex
+      (%%memq name '(irregex
                      zen
-                     scheme)))
+                     zen.foundation
+                     zen.scheme)))
     
     (define (atomic-output line)
       (mutex-lock! output-mutex)
@@ -1869,13 +1230,7 @@
                                                ,@(if (zen:build-target) `("-target" ,(symbol->string (zen:build-target))) '())
                                                ,@(if (zen:save-emit?) `("-emit") '())
                                                ,@(if (zen:build-repository) `("-build-repository" ,(zen:build-repository)) '())
-                                               ,@(if (zen:zen-repository) `("-zen-repository" ,(zen:zen-repository)) '())
                                                ,@(if (zen:repositories) `("-repositories" ,(zen:repositories)) '())
-                                               #; ;; dynamic-dependencies
-                                               ,@(let ((dependencies (string-append (current-directory) ".dependencies")))
-                                                   (if (file-exists? dependencies)
-                                                       `("-dependencies" ,dependencies)
-                                                     '()))
                                                ,@(if (zen:reporting?) `("-reporting") '())
                                                "-jobs" "1"
                                                "-port" ,(number->string (socket-info-port-number (tcp-server-socket-info listening-port))))
@@ -1948,7 +1303,7 @@
                       (begin
                         (make subname)
                         (%%table-set! subproduct-table subname #t))))
-                (receive (package descriptor) (zen:get-product-descriptor name)
+                (let ((descriptor (zen:get-product-descriptor name)))
                   (zen:cond-expanded-product-descriptor-dependencies name descriptor)))
       (zen:build-product name))
     
@@ -1963,7 +1318,7 @@
                                            thread))))
                          (mutex-unlock! subproduct-table-mutex)
                          thread))
-                     (receive (package descriptor) (zen:get-product-descriptor name)
+                     (let ((descriptor (zen:get-product-descriptor name)))
                        (zen:cond-expanded-product-descriptor-dependencies name descriptor))))
       (build name))
     
@@ -2061,32 +1416,22 @@
 
 
 (define (zen:resource-char-encoding resource)
+  zen:default-char-encoding
+  #; ;; bazoo
   (or (%%get-package-char-encoding (%%get-resource-package resource))
       zen:default-char-encoding))
 
 
-(define (zen:resource-package resource)
-  (%%get-resource-package resource))
-
-
 (define (zen:resource-pathname resource)
-  (zen:package-root-pathname (%%get-resource-package resource)
-    (zen:resource-package-pathname resource)))
+  (zen:repository-pathname (%%get-resource-repository resource)
+    (zen:resource-repository-pathname resource)))
 
 
-(define (zen:resource-package-pathname resource)
+(define (zen:resource-repository-pathname resource)
   (let ((ext (%%get-resource-extension resource)))
     (if (%%not ext)
         (%%get-resource-path resource)
       (%%string-append (%%get-resource-path resource) "." ext))))
-
-
-(define (zen:name->path resource-name)
-  (zen:string-replace (%%symbol->string resource-name) #\. #\/))
-
-
-(define (zen:path->name resource-name)
-  (%%string->symbol (zen:string-replace resource-name #\/ #\.)))
 
 
 (define (zen:binary-with-extension src extension)
@@ -2129,18 +1474,8 @@
            (iter (%%fx+ n 1) #t)))))
 
 
-(define (zen:product-library-name-base package path)
-  (zen:relocate-product-library-name-base (%%get-package-repository package) package path))
-
-
-(define (zen:relocate-product-library-name-base repository package path)
-  (define (build-dir package)
-    (let ((parent (%%get-package-parent package)))
-      (zen:repository-pathname repository
-        (%%string-append (if parent (%%string-append (%%get-package-library-path parent) "/") "")
-                         (%%symbol->string (%%get-package-name package))))))
-  
-  (string-append (build-dir package)
+(define (zen:relocate-product-library-name-base repository name path)
+  (string-append (zen:repository-pathname repository name)
                  "/"
                  path))
 
@@ -2150,18 +1485,18 @@
 ;;;
 
 
-(define (zen:manifest-pathname package resource)
-  (zen:package-root-pathname package
-                              (%%string-append (%%get-resource-path resource)
-                                               "."
-                                               zen:Manifest-Extension)))
+(define (zen:manifest-pathname repository resource)
+  (zen:repository-pathname repository
+                           (%%string-append (%%get-resource-path resource)
+                             "."
+                             zen:Manifest-Extension)))
 
 
-(define (zen:digest-pathname package resource)
-  (zen:package-root-pathname package
-                              (%%string-append (%%get-resource-path resource)
-                                               "."
-                                               zen:Digest-Extension)))
+(define (zen:digest-pathname repository resource)
+  (zen:repository-pathname repository
+                           (%%string-append (%%get-resource-path resource)
+                             "."
+                             zen:Digest-Extension)))
 
 
 ;;;
@@ -2375,9 +1710,8 @@
 
 
 (define (zen:relocate-resource repository resource)
-  (let ((package (%%get-resource-package resource))
-        (dir (zen:pathname-dir (%%get-resource-path resource))))
-    (zen:relocate-package-pathname repository package dir)))
+  (let ((dir (zen:pathname-dir (%%get-resource-path resource))))
+    (zen:repository-pathname repository dir)))
 
 
 ;;;
@@ -2850,5 +2184,5 @@
 
 (zen:register-reader-extension "zen"
   (lambda ()
-    (zen:load-unit 'zen.dialect)
+    ;; bazoo (zen:load-unit 'zen/dialect)
     zen:zen-readtable)))

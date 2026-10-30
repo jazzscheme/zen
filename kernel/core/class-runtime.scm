@@ -39,12 +39,14 @@
 
 (define (zen:composite-identifier? symbol)
   (and (%%symbol? symbol)
-       (zen:memstring #\. (%%symbol->string symbol))))
+       (zen:memstring #\/ (%%symbol->string symbol))))
 
 
 (define (zen:composite-reference? symbol)
   (and (%%symbol? symbol)
-       (zen:memstring #\: (%%symbol->string symbol))))
+       (let ((str (%%symbol->string symbol)))
+         (or (zen:memstring #\: str)
+             (zen:memstring #\# str)))))
 
 
 (define (zen:split-symbol symbol separator)
@@ -53,11 +55,13 @@
 
 
 (define (zen:split-identifier symbol)
-  (zen:split-symbol symbol #\.))
+  (zen:split-symbol symbol #\/))
 
 
 (define (zen:split-reference symbol)
-  (zen:split-symbol symbol #\:))
+  (let ((str (%%symbol->string symbol)))
+    (let ((separator (if (zen:memstring #\# str) #\# #\:)))
+      (zen:split-symbol symbol separator))))
 
 
 (define (zen:composite-namespace? symbol)

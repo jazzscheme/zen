@@ -73,7 +73,7 @@
 
 
 (define (zen:require-dialect name)
-  (%%unless (%%eq? name 'foundation.dialect)
+  (%%unless (%%eq? name 'zen.foundation.dialect)
     (zen:load-unit name))
   (or (zen:get-dialect name)
       (zen:error "Unknown dialect: {s}" name)))
@@ -786,12 +786,12 @@
 
 
 (define (zen:new-unit-declaration name access parent requires)
-  (define (determine-package)
+  (define (determine-repository)
     (let ((resource (zen:requested-unit-resource)))
       (and resource
-           (%%get-resource-package resource))))
+           (%%get-resource-repository resource))))
   
-  (let ((new-declaration (zen:allocate-unit-declaration name #f #f access 'uptodate '() '() #f parent #f #f #f (determine-package) requires)))
+  (let ((new-declaration (zen:allocate-unit-declaration name #f #f access 'uptodate '() '() #f parent #f #f #f (determine-repository) requires)))
     (zen:setup-declaration new-declaration)
     new-declaration))
 
@@ -898,12 +898,12 @@
 
 
 (define (zen:new-module-declaration name access modifiers parent walker dialect-name dialect-invoice)
-  (define (determine-package)
+  (define (determine-repository)
     (let ((resource (zen:requested-unit-resource)))
       (and resource
-           (%%get-resource-package resource))))
+           (%%get-resource-repository resource))))
   
-  (let ((new-declaration (zen:allocate-module-declaration name #f #f access 'uptodate modifiers '() #f parent #f #f #f (zen:make-access-lookups zen:public-access) (zen:new-queue) #f walker (determine-package) dialect-name dialect-invoice '() '() '() '() (%%make-table test: eq?))))
+  (let ((new-declaration (zen:allocate-module-declaration name #f #f access 'uptodate modifiers '() #f parent #f #f #f (zen:make-access-lookups zen:public-access) (zen:new-queue) #f walker (determine-repository) dialect-name dialect-invoice '() '() '() '() (%%make-table test: eq?))))
     (zen:setup-declaration new-declaration)
     new-declaration))
 
@@ -1277,7 +1277,7 @@
                (zen:enqueue queue `(zen:load-unit ',unit-name))))
            
            (let ((dialect-name (zen:get-module-declaration-dialect-name declaration)))
-             (%%when (%%neq? dialect-name 'foundation.dialect)
+             (%%when (%%neq? dialect-name 'zen.foundation.dialect)
                (enqueue-load-unit dialect-name)))
            (for-each (lambda (require-invoice)
                        (enqueue-load-unit (zen:get-require-invoice-name require-invoice)))
@@ -1579,7 +1579,7 @@
 (define (zen:load-dialect-invoice dialect-name dialect-transformations)
   (if (%%not (%%symbol? dialect-name))
       (zen:error "Dialect must be a symbol: {s}" dialect-name)
-    (if (%%eq? dialect-name 'foundation.dialect)
+    (if (%%eq? dialect-name 'zen.foundation.dialect)
         #f
       (zen:new-import-invoice
         dialect-name
@@ -2972,7 +2972,7 @@
 (define (zen:patch-type-until-unification type)
   (let ((name (%%table-ref zen:primitive-declarations type #f)))
     (if name
-        (let ((module-name 'zen.language.runtime))
+        (let ((module-name 'zen/language/runtime))
           (let ((module-declaration (zen:get-catalog-entry module-name)))
             (if module-declaration
                 (zen:lookup-declaration module-declaration name zen:public-access module-declaration)
@@ -3202,9 +3202,9 @@
               (let* ((env
                        (%%list
                          (zen:new-walk-frame
-                           (zen:get-dialect-bindings (zen:get-dialect 'scheme)))
+                           (zen:get-dialect-bindings (zen:get-dialect 'zen.scheme)))
                          (zen:new-walk-frame
-                           (zen:get-dialect-bindings (zen:get-dialect 'foundation)))))
+                           (zen:get-dialect-bindings (zen:get-dialect 'zen.foundation)))))
                      (env
                        (cond ((zen:get-dialect 'zen)
                               => (lambda (x)
@@ -3346,9 +3346,9 @@
               (let* ((env
                        (%%list
                          (zen:new-walk-frame
-                           (zen:get-dialect-bindings (zen:get-dialect 'scheme)))
+                           (zen:get-dialect-bindings (zen:get-dialect 'zen.scheme)))
                          (zen:new-walk-frame
-                           (zen:get-dialect-bindings (zen:get-dialect 'foundation)))))
+                           (zen:get-dialect-bindings (zen:get-dialect 'zen.foundation)))))
                      (env
                        (cond ((zen:get-dialect 'zen)
                               => (lambda (x)
@@ -3462,9 +3462,9 @@
                   (let* ((env
                            (%%list
                              (zen:new-walk-frame
-                               (zen:get-dialect-bindings (zen:get-dialect 'scheme)))
+                               (zen:get-dialect-bindings (zen:get-dialect 'zen.scheme)))
                              (zen:new-walk-frame
-                               (zen:get-dialect-bindings (zen:get-dialect 'foundation)))))
+                               (zen:get-dialect-bindings (zen:get-dialect 'zen.foundation)))))
                          (env
                            (cond ((zen:get-dialect 'zen)
                                   => (lambda (x)
@@ -4870,11 +4870,11 @@
 
 
 (zen:define-method (zen:walker-declarations (zen:Walker walker))
-  (%%list (zen:get-dialect-declarations (zen:get-dialect 'foundation))))
+  (%%list (zen:get-dialect-declarations (zen:get-dialect 'zen.foundation))))
 
 
 (zen:define-method (zen:walker-bindings (zen:Walker walker))
-  (%%list (zen:get-dialect-bindings (zen:get-dialect 'foundation))))
+  (%%list (zen:get-dialect-bindings (zen:get-dialect 'zen.foundation))))
 
 
 (define (zen:walker-declaration-environment walker)
@@ -5846,7 +5846,7 @@
     (if pathname
         (zen:pathname-brother pathname filename)
       (let ((resource (zen:requested-unit-resource)))
-        (%%make-resource (%%get-resource-package resource)
+        (%%make-resource (%%get-resource-repository resource)
                          (zen:pathname-brother (%%get-resource-path resource) filename)
                          #f
                          #f)))))
@@ -6353,7 +6353,7 @@
 
 (define (zen:bin->otl bin)
   (let ((path (%%get-resource-path bin)))
-    (%%make-resource (%%get-resource-package bin)
+    (%%make-resource (%%get-resource-repository bin)
                      (zen:pathname-brother path (zen:add-extension (zen:pathname-base path) "otl"))
                      (%%get-resource-underscore? bin)
                      #f)))

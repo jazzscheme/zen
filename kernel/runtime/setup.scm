@@ -121,7 +121,10 @@ end-of-code
 (define (zen:path->container-hook path)
   (let ((override (zen:path->container-override)))
     (or (and override (override path))
-        (zen:find-pathname-unit path))))
+        (let ((resource (zen:find-resource path)))
+          (if resource
+              (%%string->symbol (%%get-resource-path resource))
+            #f)))))
 
 
 (define (zen:container->path-hook container)
@@ -153,170 +156,6 @@ end-of-code
 (%%path->container-hook-set! zen:path->container-hook)
 (%%container->path-hook-set! zen:container->path-hook)
 (%%container->id-hook-set! zen:container->id-hook)
-
-
-;;;
-;;;; Source
-;;;
-
-
-(define zen:wrap-datum&
-  (if (zen:gambitzen?)
-      (lambda (re x)
-        (if (%%source? x)
-            x
-          (zen:make-source& x (zen:readenv->locat& re))))
-    zen:wrap-datum))
-
-(define zen:unwrap-datum&
-  (if (zen:gambitzen?)
-      (lambda (re x)
-        (%%source-code x))
-    zen:unwrap-datum))
-
-
-(define zen:readenv->locat&
-  (if (zen:gambitzen?)
-      (lambda (re)
-        (let ((container
-                (or (zen:readenv-container re)
-                    (let ((c
-                            (%%port-name->container
-                              (%%port-name (zen:readenv-port re)))))
-                      (zen:readenv-container-set! re c)
-                      c))))
-          (zen:make-locat& container
-                            (%%filepos->position
-                              (zen:readenv-filepos re))
-                            (%%filepos->position
-                              (%%readenv-current-filepos re)))))
-    (lambda (re)
-      (zen:unimplemented))))
-
-
-(define zen:source&?
-  (if (zen:gambitzen?)
-      (lambda (src)
-        (and (%%source? src)
-             (%%fx= (%%vector-length src) 6)))
-    (lambda (src)
-      #f)))
-
-(define zen:make-source&
-  (if (zen:gambitzen?)
-      (lambda (code locat)
-        (%%vector zen:source1-marker
-                  code
-                  (if locat (%%locat-container locat) #f)
-                  (if locat (zen:locat-start& locat) #f)
-                  (if locat (zen:locat-end& locat) #f)
-                  'text))
-    (lambda (code locat)
-      (zen:unimplemented))))
-
-(define zen:sourcify-aux1&
-  (if (zen:gambitzen?)
-      (lambda (code src)
-        (if (zen:source&? src)
-            (%%vector zen:source1-marker
-                      code
-                      (%%vector-ref src 2)
-                      (%%vector-ref src 3)
-                      (%%vector-ref src 4)
-                      'syntax)
-          (%%vector zen:source1-marker
-                    code
-                    (%%vector-ref src 2)
-                    (%%vector-ref src 3))))
-    (lambda (code src)
-      (zen:unimplemented))))
-
-(define zen:sourcify-aux2&
-  (if (zen:gambitzen?)
-      (lambda (code src)
-        (if (zen:source&? src)
-            (%%vector zen:source2-marker
-                      code
-                      (%%vector-ref src 2)
-                      (%%vector-ref src 3)
-                      (%%vector-ref src 4)
-                      'syntax)
-          (%%vector zen:source2-marker
-                    code
-                    (%%vector-ref src 2)
-                    (%%vector-ref src 3))))
-    (lambda (code src)
-      (zen:unimplemented))))
-
-(define zen:source-locat&
-  (if (zen:gambitzen?)
-      (lambda (src)
-        (if (zen:source&? src)
-            (let ((container (%%vector-ref src 2)))
-              (if container
-                  (zen:make-locat& container
-                                    (%%vector-ref src 3)
-                                    (%%vector-ref src 4))
-                #f))
-          (let ((container (%%vector-ref src 2)))
-            (if container
-                (%%make-locat container
-                              (%%vector-ref src 3))
-              #f))))
-    (lambda (src)
-      (%%source-locat src))))
-
-(define zen:source-origin
-  (if (zen:gambitzen?)
-      (lambda (src)
-        (%%vector-ref src 5))
-    (lambda (src)
-      (zen:unimplemented))))
-
-(define zen:text-source?
-  (if (zen:gambitzen?)
-      (lambda (src)
-        (and (zen:source&? src)
-             (%%eq? (zen:source-origin src) 'text)))
-    (lambda (src)
-      (zen:unimplemented))))
-
-
-(define zen:locat&?
-  (if (zen:gambitzen?)
-      (lambda (locat)
-        (%%fx= (%%vector-length locat) 3))
-    (lambda (locat)
-      (zen:unimplemented))))
-
-(define zen:make-locat&
-  (if (zen:gambitzen?)
-      (lambda (container start end)
-        (%%vector container start end))
-    (lambda (container start end)
-      (zen:unimplemented))))
-
-(define zen:locat-start&
-  (lambda (locat)
-    (%%locat-start-position locat)))
-
-(define zen:locat-end&
-  (if (zen:gambitzen?)
-      (lambda (locat)
-        (let ((container (%%vector-ref locat 0)))
-          (if (%%source? container)
-              (zen:locat-end& (%%source-locat container))
-            (%%vector-ref locat 2))))
-    (lambda (locat)
-      (%%locat-start-position locat))))
-
-
-(if (zen:gambitzen?)
-    (begin
-      (zen:wrap-datum-set! zen:wrap-datum&)
-      (zen:unwrap-datum-set! zen:unwrap-datum&)
-      (zen:sourcify-aux1-set! zen:sourcify-aux1&)
-      (zen:sourcify-aux2-set! zen:sourcify-aux2&)))
 
 
 ;;;
@@ -370,10 +209,7 @@ end-of-code
               (newline port)
               (continuation-capture
                 (lambda (k)
-                  ;; bongo
-                  (display-continuation-backtrace k port)
-                  #;
-                  (display-continuation-backtrace k port #f #f 500 500)))
+                  (display-continuation-backtrace k port)))
               (force-output port))))
         (zen:clear-exit-jobs!)
         (zen:exit 1))
@@ -410,6 +246,7 @@ end-of-code
       (%%table-set! libraries product-name library-filename)))
   
   ; find the libraries
+  #; ;; bazoo
   (zen:iterate-packages #t
     (lambda (package)
       (let ((products (%%get-package-products package)))
@@ -505,7 +342,7 @@ end-of-code
     (lambda ()
       (zen:split-command-line (zen:command-arguments)
                                '("v" "version" "nosource" "debug" "f" "force" "force-outlines" "sweep" "worker" "reporting" "keep-c" "track-scheme" "expansion" "gvm" "emit" "dry" "g" "gambit")
-                               '("build-repository" "zen-repository" "repositories" "dependencies" "recompile-references" "e" "eval" "i" "interpret" "l" "load" "t" "test" "r" "run" "update" "make" "build" "download" "install" "deploy" "p" "parse" "s" "sourcify" "shape" "x" "expand" "k" "check" "y" "verify" "c" "compile" "report" "target" "d" "debugger" "link" "j" "jobs" "port" "load-feedback" "load-expected" "m" "module" "dialect" "listen")
+                               '("build-repository" "repositories" "dependencies" "recompile-references" "e" "eval" "i" "interpret" "l" "load" "t" "test" "r" "run" "update" "make" "build" "download" "install" "deploy" "p" "parse" "s" "sourcify" "shape" "x" "expand" "k" "check" "y" "verify" "c" "compile" "report" "target" "d" "debugger" "link" "j" "jobs" "port" "load-feedback" "load-expected" "m" "module" "dialect" "listen")
                                missing-argument-for-option
         (lambda (commands options remaining)
           (let ((version? (or (zen:find-option "v" options) (zen:find-option "version" options)))
@@ -523,7 +360,6 @@ end-of-code
                 (force-outlines? (zen:find-option "force-outlines" options))
                 (gambit? (or (zen:find-option "g" options) (zen:find-option "gambit" options)))
                 (build-repository (zen:find-option "build-repository" options))
-                (zen-repository (zen:find-option "zen-repository" options))
                 (repositories (zen:find-option "repositories" options))
                 (dependencies (zen:find-option "dependencies" options))
                 (recompile-references (expression-argument (zen:find-option "recompile-references" options)))
@@ -570,27 +406,10 @@ end-of-code
               (zen:process-settings)
               (zen:make-exit-jobs-safe))
             
-            #; ;; dynamic-dependencies
-            (define (locate-dependencies root-path)
-              (and root-path
-                   (let ((dynamic-file (%%string-append root-path ".dependencies")))
-                     (and (file-exists? dynamic-file)
-                          dynamic-file))))
-            
             (define (setup-repositories make? libraries?)
               (if build-repository (zen:build-repository build-repository))
-              (if zen-repository (zen:zen-repository zen-repository))
               (if repositories (zen:repositories repositories))
-              #; ;; dynamic-dependencies
-              (let ((dynamic-file (or dependencies
-                                      (locate-dependencies (zen:build-repository))
-                                      (locate-dependencies zen:kernel-install))))
-                (if dynamic-file
-                    (zen:dependencies (call-with-input-file dynamic-file read))))
               (zen:prepare-repositories)
-              (let ((needs-sweep (and make? (or sweep? (zen:build-repository-needs-sweep)))))
-                (if needs-sweep
-                    (zen:sweep-build-repository needs-sweep)))
               (if libraries?
                   (zen:load-libraries))
               (zen:setup-repositories))
@@ -604,7 +423,6 @@ end-of-code
             (define (setup-build #!optional (make? #f))
               (zen:setup-kernel-source)
               (setup-kernel)
-              (zen:process-buildini #t)
               (setup-repositories make? #f)
               (set! zen:link (or link (zen:build-link)))
               (set! zen:link-options (zen:parse-link zen:link))
@@ -645,11 +463,11 @@ end-of-code
                         ;; quick hack load everything needed for compilation before changing repositories
                         ;; this will clearly be missing user-defined syntax
                         (zen:load-unit 'zen)
-                        (zen:load-unit 'zen.dialect.syntax)
-                        (zen:load-unit 'scheme.syntax-rules)
-                        (zen:load-unit 'zen.core)
-                        (zen:load-unit 'zen.foreign)
-                        (zen:load-unit 'zen.foreign.syntax)
+                        (zen:load-unit 'zen/dialect/syntax)
+                        (zen:load-unit 'scheme/syntax-rules)
+                        (zen:load-unit 'zen/core)
+                        (zen:load-unit 'zen/foreign)
+                        (zen:load-unit 'zen/foreign/syntax)
                         (let ((target-platform (zen:get-configuration-platform configuration))
                               (target-processor (zen:get-configuration-processor configuration)))
                           (if (%%eq? target-platform 'ios)
@@ -658,6 +476,7 @@ end-of-code
                           (if target-processor
                               (%%cond-expand-features (append (%%cond-expand-features) (list target-processor)))))
                         (zen:TARGET-HACK?-set! #t)
+                        #; ;; bazoo
                         (let ((old zen:Build-Repository))
                           ;; quick hack around the fact that the kernel doesn't know the directory from which it was built
                           ;; this directory would be the project or solution or ... when I do a complete overhaul to all this
@@ -667,8 +486,7 @@ end-of-code
                               zen:kernel-source))
                           
                           (set! zen:Build-Repository (zen:make-repository 'Build "lib" (%%string-append (determine-root) (zen:get-configuration-destination configuration)) binary?: #t dynamic?: #t))
-                          (set! zen:Repositories (%%append (zen:remove old zen:Repositories) (%%list zen:Build-Repository))))
-                        (set! zen:*binary-packages-cache* (%%make-table test: eq?)))))))
+                          (set! zen:Repositories (%%append (zen:remove old zen:Repositories) (%%list zen:Build-Repository)))))))))
             
             (define (setup-dowload)
               (setup-build))

@@ -35,7 +35,7 @@
 
 
 (define (zen:shape-unit unit-name)
-  (zen:load-unit 'zen.dialect)
+  (zen:load-unit 'zen/dialect)
   (let ((shape (zen:module-shape #f #f #f unit-name)))
     (pp shape)))
 

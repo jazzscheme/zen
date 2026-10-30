@@ -51,7 +51,7 @@
       (<Project-File>                 source: {File :context "syntax" "verbose.scm"})
       (<Project-File>                 source: {File :context "syntax" "internal.scm"})
       (<Project-File>                 source: {File :context "syntax" "unsafe.scm"})
-      (<Project-File>                 source: {File :context "syntax" "bundle.scm"}))
+      (<Project-File>                 source: {File :context "syntax" "library.scm"}))
     (<Project-Directory>              directory: {Directory :context "core"}
       (<Project-File>                 source: {File :context "core" "base-runtime.scm"})
       (<Project-File>                 source: {File :context "core" "base-syntax.scm"})
@@ -70,6 +70,9 @@
       (<Project-File>                 source: {File :context "dialect" "dialect-syntax.scm"}))
     (<Project-Directory>              directory: {Directory :context "foundation"}
       (<Project-File>                 source: {File :context "foundation" "foundation-runtime.scm"}))
+    (<Project-Directory>              directory: {Directory :context "scheme"}
+      (<Project-File>                 source: {File :context "scheme" "scheme-backend.scm"})
+      (<Project-File>                 source: {File :context "scheme" "scheme-dialect.scm"}))
     (<Project-File>                   source: {File :context "boot.scm"})
     (<Project-File>                   source: {File :context "build.scm"})
     (<Project-File>                   source: {File :context "updates"})

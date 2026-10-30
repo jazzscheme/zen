@@ -12,7 +12,6 @@
 (declare (not safe))
 
 
-;; bongo
 (define ##gensym-interned-counter
   -1)
 
@@ -39,10 +38,7 @@
 (define (zen:generate-symbol #!optional (prefix "sym"))
   (let ((for (zen:generate-symbol-for)))
     (let ((name (string-append prefix (or for "^"))))
-      ;; bongo
-      (##gensym-interned (##string->symbol name))
-      #;
-      (##gensym (##string->uninterned-symbol name)))))
+      (##gensym-interned (##string->symbol name)))))
 
 
 (define (zen:generate-global-symbol #!optional (prefix "sym"))
@@ -53,12 +49,9 @@
           ((%%not context)
            (error "Invalid call to generate-global-symbol without a context"))
           (else
-           (let ((module (zen:string-replace (symbol->string context) #\. #\/)))
+           (let ((module (symbol->string context)))
              (let ((name (%%string-append module "_" prefix for)))
-               ;; bongo
-               (##gensym-interned (##string->symbol name))
-               #;
-               (##gensym (##string->uninterned-symbol name))))))))
+               (##gensym-interned (##string->symbol name))))))))
 
 
 (define (zen:with-uniqueness expr proc)

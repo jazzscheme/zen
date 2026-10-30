@@ -43,30 +43,12 @@
 
 
 ;;;
-;;;; Libraries
-;;;
-
-
-(cond-expand
-  (mac
-   (define (zen:use-dlclose)
-     #f
-     ;; bongo
-     #;
-     (##use-dlclose)))
-  (else))
-
-
-;;;
 ;;;; Compiler
 ;;;
 
 
 (define (zen:compiler-present?)
-  ;; bongo
-  (zen:global-bound? '##gambuild)
-  #;
-  (zen:global-bound? '##gambcomp))
+  (zen:global-bound? '##gambuild))
 
 
 ;;;
@@ -188,16 +170,6 @@
 
 
 ;;;
-;;;; Gambit
-;;;
-
-
-(define (zen:gambitzen?)
-  (and (zen:global-bound? '##gambitzen?)
-       (zen:global-ref '##gambitzen?)))
-
-
-;;;
 ;;;; Heartbeat
 ;;;
 
@@ -228,10 +200,7 @@
 
 
 (define (zen:load-required-module module-ref)
-  ;; bongo
-  (##load-module module-ref)
-  #;
-  (##load-required-module module-ref))
+  (##load-module module-ref))
 
 (define (zen:load-object-file pathname quiet?)
   (zen:check-string pathname 1 (zen:load-object-file pathname quiet?)
@@ -281,37 +250,6 @@
 ;;;
 ;;;; Source
 ;;;
-
-
-(define zen:source1-marker
-  ##source1-marker)
-
-(define zen:source2-marker
-  ##source2-marker)
-
-
-(define zen:wrap-datum
-  ##wrap-datum)
-
-(define zen:unwrap-datum
-  ##unwrap-datum)
-
-
-(define (zen:wrap-datum-set! proc)
-  (zen:check-procedure proc 1 (zen:wrap-datum-set! proc)
-    (set! ##wrap-datum proc)))
-
-(define (zen:unwrap-datum-set! proc)
-  (zen:check-procedure proc 1 (zen:unwrap-datum-set! proc)
-    (set! ##unwrap-datum proc)))
-
-(define (zen:sourcify-aux1-set! proc)
-  (zen:check-procedure proc 1 (zen:sourcify-aux1-set! proc)
-    (set! ##sourcify-aux1 proc)))
-
-(define (zen:sourcify-aux2-set! proc)
-  (zen:check-procedure proc 1 (zen:sourcify-aux2-set! proc)
-    (set! ##sourcify-aux2 proc)))
 
 
 (define (zen:expand-source-set! proc)

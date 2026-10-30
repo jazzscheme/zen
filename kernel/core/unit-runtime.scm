@@ -50,7 +50,7 @@
                 (descendant-length (%%string-length descendant)))
             (and (%%fx> descendant-length unit-length)
                  (%%string=? (%%substring descendant 0 unit-length) unit)
-                 (%%eqv? (%%string-ref descendant unit-length) #\.)))))
+                 (%%eqv? (%%string-ref descendant unit-length) #\/)))))
       
       (define (iterate parent-name unit-name phase)
         (let ((declaration (zen:outline-subunit unit-name)))

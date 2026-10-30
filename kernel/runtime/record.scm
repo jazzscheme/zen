@@ -31,47 +31,17 @@
 (zen:define-macro (%%subtype-zen)
   7)
 
-(zen:define-macro (%%subtype-zenstruct)
-  (if (zen:gambitzen?)
-      16
-    `(error "Unimplemented")))
-
 (zen:define-macro (%%zen-subtype? st)
   `(%%fx= ,st (%%subtype-zen)))
 
-(zen:define-macro (%%zenstruct-subtype? st)
-  (if (zen:gambitzen?)
-      `(%%fx= ,st (%%subtype-zenstruct))
-    #f))
 
-
-;; this function is here for structure / class unification
 (zen:define-macro (%%zen? expr)
-  (if (zen:gambitzen?)
-      (zen:with-uniqueness expr
-        (lambda (expr)
-          `(or (^#jazz? ,expr) (^#jazzstruct? ,expr))))
-    `(^#jazz? ,expr)))
+  `(^#jazz? ,expr))
 
-;; this function is here for structure / class unification
-(zen:define-macro (%%zenstruct? expr)
-  (if (zen:gambitzen?)
-      `(^#jazzstruct? ,expr)
-    #f))
-
-;; this function is here for structure / class unification
 (zen:define-macro (%%zenify expr)
   (%%force-uniqueness (expr)
     `(%%check-vector ,expr 1 (%%zenify ,expr)
        (^#subtype-set! ,expr (%%subtype-zen)))))
-
-;; this function is here for structure / class unification
-(zen:define-macro (%%zenstructify expr)
-  (if (zen:gambitzen?)
-      (%%force-uniqueness (expr)
-        `(%%check-vector ,expr 1 (%%zenstructify ,expr)
-           (^#subtype-set! ,expr (%%subtype-zenstruct))))
-    `(error "Unimplemented")))
 
 
 (define (zen:zen? obj)
@@ -79,12 +49,6 @@
 
 (define (zen:zenify obj)
   (%%zenify obj))
-
-(define (zen:zenstruct? obj)
-  (%%zenstruct? obj))
-
-(define (zen:zenstructify obj)
-  (%%zenstructify obj))
 
 
 ;;;
