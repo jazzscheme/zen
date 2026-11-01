@@ -342,7 +342,7 @@ end-of-code
     (lambda ()
       (zen:split-command-line (zen:command-arguments)
                                '("v" "version" "nosource" "debug" "f" "force" "force-outlines" "sweep" "worker" "reporting" "keep-c" "track-scheme" "expansion" "gvm" "emit" "dry" "g" "gambit")
-                               '("build-repository" "repositories" "dependencies" "recompile-references" "e" "eval" "i" "interpret" "l" "load" "t" "test" "r" "run" "update" "make" "build" "download" "install" "deploy" "p" "parse" "s" "sourcify" "shape" "x" "expand" "k" "check" "y" "verify" "c" "compile" "report" "target" "d" "debugger" "link" "j" "jobs" "port" "load-feedback" "load-expected" "m" "module" "dialect" "listen")
+                               '("build-repository" "repositories" "dependencies" "recompile-references" "e" "eval" "i" "interpret" "l" "load" "t" "test" "r" "run" "update" "make" "build" "download" "install" "deploy" "p" "parse" "s" "sourcify" "shape" "x" "expand" "k" "check" "y" "verify" "c" "compile" "report" "d" "debugger" "link" "j" "jobs" "port" "load-feedback" "load-expected" "m" "module" "dialect" "listen")
                                missing-argument-for-option
         (lambda (commands options remaining)
           (let ((version? (or (zen:find-option "v" options) (zen:find-option "version" options)))
@@ -383,7 +383,6 @@ end-of-code
                 (compile (or (zen:find-option "c" options) (zen:find-option "compile" options)))
                 (report (zen:find-option "report" options))
                 (reporting? (zen:find-option "reporting" options))
-                (target (symbol-argument (zen:find-option "target" options)))
                 (debugger (or (zen:find-option "d" options) (zen:find-option "debugger" options)))
                 (link (symbol-argument (zen:find-option "link" options)))
                 (jobs (number-argument (or (zen:find-option "j" options) (zen:find-option "jobs" options))))
@@ -416,9 +415,7 @@ end-of-code
             
             (define (setup-runtime)
               (setup-kernel)
-              (setup-repositories #f #t)
-              ;; to test cross compiling REMOVE CODE WHEN DONE
-              (setup-target))
+              (setup-repositories #f #t))
             
             (define (setup-build #!optional (make? #f))
               (zen:setup-kernel-source)
@@ -449,44 +446,7 @@ end-of-code
               (if report
                   (zen:setup-report report))
               (if reporting?
-                  (zen:setup-reporting))
-              (setup-target))
-            
-            (define (setup-target)
-              (if target
-                  (let ((configuration (zen:find-named-configuration target)))
-                    (if (%%not configuration)
-                        (zen:error "Unknown configuration: {s}" target)
-                      (begin
-                        (zen:build-target target)
-                        (zen:build-configuration configuration)
-                        ;; quick hack load everything needed for compilation before changing repositories
-                        ;; this will clearly be missing user-defined syntax
-                        (zen:load-unit 'zen)
-                        (zen:load-unit 'zen/dialect/syntax)
-                        (zen:load-unit 'scheme/syntax-rules)
-                        (zen:load-unit 'zen/core)
-                        (zen:load-unit 'zen/foreign)
-                        (zen:load-unit 'zen/foreign/syntax)
-                        (let ((target-platform (zen:get-configuration-platform configuration))
-                              (target-processor (zen:get-configuration-processor configuration)))
-                          (if (%%eq? target-platform 'ios)
-                              (%%cond-expand-features (zen:remove 'cocoa (%%cond-expand-features))))
-                          (%%cond-expand-features (append (%%cond-expand-features) (list target-platform)))
-                          (if target-processor
-                              (%%cond-expand-features (append (%%cond-expand-features) (list target-processor)))))
-                        (zen:TARGET-HACK?-set! #t)
-                        #; ;; bazoo
-                        (let ((old zen:Build-Repository))
-                          ;; quick hack around the fact that the kernel doesn't know the directory from which it was built
-                          ;; this directory would be the project or solution or ... when I do a complete overhaul to all this
-                          (define (determine-root)
-                            (if (zen:string-ends-with? zen:kernel-source "/zen/")
-                                (substring zen:kernel-source 0 (- (string-length zen:kernel-source) (string-length "zen/")))
-                              zen:kernel-source))
-                          
-                          (set! zen:Build-Repository (zen:make-repository 'Build "lib" (%%string-append (determine-root) (zen:get-configuration-destination configuration)) binary?: #t dynamic?: #t))
-                          (set! zen:Repositories (%%append (zen:remove old zen:Repositories) (%%list zen:Build-Repository)))))))))
+                  (zen:setup-reporting)))
             
             (define (setup-dowload)
               (setup-build))
