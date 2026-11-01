@@ -307,9 +307,11 @@
   (define ios-gambit-include-dir
     (path-expand "~~ios/include"))
   
+  (define options
+    `((module-ref ,unit-name) ,@(if (%%eq? options #!void) '() options)))
+  
   (define (compile)
-    (let ((unique-module-name (%%string-append zen:bin-uniqueness-prefix (%%symbol->string unit-name)))
-          (src-pathname (zen:resource-pathname src))
+    (let ((src-pathname (zen:resource-pathname src))
           (bin-output (string-append bin-pathname-base bin-extension))
           (link-file-output (string-append bin-pathname-base "_" bin-extension)))
       (parameterize ((zen:generate-symbol-for "^")
@@ -317,7 +319,7 @@
                      (zen:compiled-source src))
         ;; temporary until a cleaner solution
         (zen:set-gensym-counter! -1)
-        (if (not (and (compile-file-to-target src-pathname output: bin-output options: options module-name: unique-module-name)
+        (if (not (and (compile-file-to-target src-pathname output: bin-output options: options)
                       (if ios?
                           (let ((custom-cc-options ios-custom-cc-options))
                             (zen:call-process
