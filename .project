@@ -14,5 +14,6 @@
 
 (form
   (<Project> name: zen depot-directory: {Directory :context}
+    (<*>               tag-reference: {File :context "contrib" ".project"})
     (<*>               tag-reference: {File :context "kernel" ".project"})
     (<*>               tag-reference: {File :context "lib" ".project"}))))

@@ -1,0 +1,17 @@
+;;;==============
+;;;  JazzScheme
+;;;==============
+;;;
+;;;; Project
+;;;
+
+
+(data jazz.ide.data.project
+
+
+(form
+  (<Project> name: lib sort?: #t
+    (<*>               tag-reference: {File :context "zen" ".project"})
+    (<*>               tag-reference: {File :context "zen.foundation" ".project"})
+    (<*>               tag-reference: {File :context "zen.gambit" ".project"})
+    (<*>               tag-reference: {File :context "zen.scheme" ".project"}))))

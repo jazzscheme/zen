@@ -1187,8 +1187,7 @@
         (jobs (or zen:jobs (zen:build-jobs) zen:jobs-default))
         (stop-build? #f))
     (define (key-product? name)
-      (%%memq name '(irregex
-                     zen
+      (%%memq name '(zen
                      zen.foundation
                      zen.scheme)))
     
