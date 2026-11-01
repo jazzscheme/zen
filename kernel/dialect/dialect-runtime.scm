@@ -821,7 +821,7 @@
                                          (zen:parse-require require
                                            (lambda (require-name feature-requirement phase)
                                              (zen:require-unit-src require-name)
-                                             (zen:new-require-invoice require-name phase))))
+                                             (zen:new-require-invoice require-name phase #f))))
                                        requires)))
             (zen:new-unit-declaration name access #f require-invoices)))))))
 
@@ -920,7 +920,7 @@
     (zen:get-module-declaration-requires unit/module)))
 
 
-(define (zen:add-module-require module-declaration require)
+(define (zen:add-module-require module-declaration require primitive?)
   (zen:parse-require require
     (lambda (require-name feature-requirement phase)
       (define (find-require requires)
@@ -928,13 +928,14 @@
                         (%%eq? (zen:get-require-invoice-name req) require-name))
                       requires))
       
-      (%%when (%%eq? phase 'syntax)
+      (%%when (and (%%eq? phase 'syntax) (%%not primitive?))
         (zen:load-unit require-name))
       (let ((requires (zen:get-module-declaration-requires module-declaration)))
         (if (%%not (find-require requires))
             (begin
-              (zen:require-unit-src require-name)
-              (let ((require-invoice (zen:new-require-invoice require-name phase)))
+              (if (%%not primitive?)
+                  (zen:require-unit-src require-name))
+              (let ((require-invoice (zen:new-require-invoice require-name phase primitive?)))
                 (zen:set-module-declaration-requires module-declaration (%%append requires (%%list require-invoice))))))))))
 
 
@@ -1270,17 +1271,26 @@
            ((eval) '())
            (else (zen:declares 'module)))
        ,@(let ((queue (zen:new-queue))
-               (load-units (%%make-table test: eq?)))
-           (define (enqueue-load-unit unit-name)
-             (%%when (%%not (%%table-ref load-units unit-name #f))
-               (%%table-set! load-units unit-name #t)
+               (load/import (%%make-table test: eq?)))
+           (define (enqueue-load unit-name)
+             (%%when (%%not (%%table-ref load/import unit-name #f))
+               (%%table-set! load/import unit-name #t)
                (zen:enqueue queue `(zen:load-unit ',unit-name))))
+           
+           (define (enqueue-import unit-name)
+             (%%when (%%not (%%table-ref load/import unit-name #f))
+               (%%table-set! load/import unit-name #t)
+               (zen:enqueue queue `(##import ,unit-name))))
            
            (let ((dialect-name (zen:get-module-declaration-dialect-name declaration)))
              (%%when (%%neq? dialect-name 'zen.foundation.dialect)
-               (enqueue-load-unit dialect-name)))
+               (enqueue-load dialect-name)))
            (for-each (lambda (require-invoice)
-                       (enqueue-load-unit (zen:get-require-invoice-name require-invoice)))
+                       (let ((name (zen:get-require-invoice-name require-invoice))
+                             (primitive? (zen:get-require-invoice-primitive? require-invoice)))
+                         (if primitive?
+                             (enqueue-import name)
+                           (enqueue-load name))))
                      (zen:get-module-declaration-requires declaration))
            (for-each (lambda (module-invoice)
                        (let ((symbols (zen:get-export-invoice-symbols module-invoice))
@@ -1289,13 +1299,13 @@
                            (let ((module-declaration (zen:resolve-reference (zen:get-module-invoice-module module-invoice) declaration))
                                  (phase (zen:get-module-invoice-phase module-invoice)))
                              (%%when (and (%%neq? module-declaration declaration) (%%neq? phase 'syntax))
-                               (enqueue-load-unit (zen:get-lexical-binding-name module-declaration)))))))
+                               (enqueue-load (zen:get-lexical-binding-name module-declaration)))))))
                      (zen:get-module-declaration-exports declaration))
            (for-each (lambda (module-invoice)
                        (let ((module-declaration (zen:get-module-invoice-module module-invoice))
                              (phase (zen:get-module-invoice-phase module-invoice)))
                          (%%when (and module-declaration (%%neq? phase 'syntax))
-                           (enqueue-load-unit (zen:get-lexical-binding-name module-declaration)))))
+                           (enqueue-load (zen:get-lexical-binding-name module-declaration)))))
                      (zen:get-module-declaration-imports declaration))
            (zen:queue-list queue))
        ,@registration-expansion
@@ -1763,12 +1773,13 @@
 
 
 (zen:define-class zen:Require-Invoice zen:Object (constructor: zen:allocate-require-invoice)
-  ((name  getter: generate)
-   (phase getter: generate)))
+  ((name       getter: generate)
+   (phase      getter: generate)
+   (primitive? getter: generate)))
 
 
-(define (zen:new-require-invoice name phase)
-  (zen:allocate-require-invoice name phase))
+(define (zen:new-require-invoice name phase primitive?)
+  (zen:allocate-require-invoice name phase primitive?))
 
 
 ;;;
@@ -5865,6 +5876,32 @@
 
 
 (define (zen:walk-require-declaration walker resume declaration environment form-src)
+  (define (extract-exports require)
+    (receive (mod-info module-ref) (##find-mod-info form-src require)
+      (if (%%not mod-info)
+          #f
+        (let ((sharp-path
+                (##path-normalize
+                  (##path-expand (##string-append
+                                   (##vector-ref mod-info 1)
+                                   "#"
+                                   ".scm")
+                                 (##vector-ref mod-info 0))
+                  #f))
+              (port
+                (##vector-ref mod-info 4)))
+          (if port
+              (##close-port port))
+          (if (%%not (##file-exists? sharp-path))
+              #f
+            (call-with-input-file sharp-path
+              (lambda (port)
+                (let ((expr (read port)))
+                  (if (and (%%pair? expr)
+                           (%%eq? (%%car expr) '##namespace))
+                      (%%cdr (%%cadr expr))
+                    #f)))))))))
+  
   (let ((form (%%desourcify form-src)))
     (let ((module-declaration (zen:get-declaration-toplevel declaration)))
       (let ((requires (zen:filter-invoices (%%cdr form))))
@@ -5878,7 +5915,14 @@
         (%%when (%%eq? (zen:walk-for) 'eval)
           (for-each zen:load-unit requires))
         (for-each (lambda (require)
-                    (zen:add-module-require module-declaration (zen:listify require)))
+                    (let ((exports (extract-exports require)))
+                      (zen:add-module-require module-declaration (zen:listify require) exports)
+                      (if exports
+                          (for-each (lambda (export)
+                                      (unless (zen:find-declaration-child module-declaration export)
+                                        (let ((child (zen:new-export-declaration export zen:Any 'public 'uptodate '() '() module-declaration export)))
+                                          (zen:add-declaration-child walker resume module-declaration child))))
+                                    exports))))
                   requires)))))
 
 

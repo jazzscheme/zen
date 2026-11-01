@@ -34,7 +34,10 @@
       (define (process-require require)
         (let ((name (zen:get-require-invoice-name require))
               (phase (zen:get-require-invoice-phase require)))
-          (iterate unit-name name phase)))
+          ;; bazoo quicky for primitive require
+          (unless (and (%%symbol? name)
+                       (zen:string-starts-with? (%%symbol->string name) "_"))
+            (iterate unit-name name phase))))
       
       (define (process-export export)
         (let ((reference (zen:get-module-invoice-module export)))
