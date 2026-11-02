@@ -89,26 +89,6 @@ end-of-code
 
 
 ;;;
-;;;; Forward
-;;;
-
-
-(zen:define-variable zen:compile-unit)
-(zen:define-variable zen:custom-compile-unit)
-(zen:define-variable zen:build-unit)
-(zen:define-variable zen:get-subunit-names)
-(zen:define-variable zen:hub-declaration-class)
-(zen:define-variable zen:new-hub-declaration)
-(zen:define-variable zen:hub-declaration-hubs)
-(zen:define-variable zen:hub-declaration-hubs-set!)
-(zen:define-variable zen:hub-declaration-nodes)
-(zen:define-variable zen:hub-declaration-nodes-set!)
-(zen:define-variable zen:module-shape)
-(zen:define-variable zen:manifest-ignore?)
-(zen:define-variable zen:manifest-valid?)
-
-
-;;;
 ;;;; Container
 ;;;
 

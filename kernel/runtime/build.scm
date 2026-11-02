@@ -10,6 +10,26 @@
 
 
 ;;;
+;;;; Forward
+;;;
+
+
+(zen:define-variable zen:compile-unit)
+(zen:define-variable zen:custom-compile-unit)
+(zen:define-variable zen:build-unit)
+(zen:define-variable zen:get-subunit-names)
+(zen:define-variable zen:hub-declaration-class)
+(zen:define-variable zen:new-hub-declaration)
+(zen:define-variable zen:hub-declaration-hubs)
+(zen:define-variable zen:hub-declaration-hubs-set!)
+(zen:define-variable zen:hub-declaration-nodes)
+(zen:define-variable zen:hub-declaration-nodes-set!)
+(zen:define-variable zen:module-shape)
+(zen:define-variable zen:manifest-ignore?)
+(zen:define-variable zen:manifest-valid?)
+
+
+;;;
 ;;;; Gambit
 ;;;
 
@@ -522,7 +542,10 @@
           (compile-source-file "dialect/" "dialect-development")
           (compile-source-file "foundation/" "foundation-runtime")
           (compile-source-file "scheme/" "scheme-backend")
-          (compile-source-file "scheme/" "scheme-dialect")))
+          (compile-source-file "scheme/" "scheme-dialect")
+          (compile-source-file "zen/" "zen-runtime")
+          (compile-source-file "zen/" "zen-backend")
+          (compile-source-file "zen/" "zen-core")))
       
       (define (generate-architecture rebuild? rebuild-architecture?)
         (let ((file (kernel-file "_architecture.scm")))
@@ -662,7 +685,10 @@
                                     ,(kernel-file "dialect/dialect-development")
                                     ,(kernel-file "foundation/foundation-runtime")
                                     ,(kernel-file "scheme/scheme-backend")
-                                    ,(kernel-file "scheme/scheme-dialect"))))
+                                    ,(kernel-file "scheme/scheme-dialect")
+                                    ,(kernel-file "zen/zen-runtime")
+                                    ,(kernel-file "zen/zen-backend")
+                                    ,(kernel-file "zen/zen-core"))))
                   (let ((link-info (product-file (%%string-append image-name ".link"))))
                     (call-with-output-file (list path: link-info eol-encoding: (zen:platform-eol-encoding zen:kernel-platform))
                       (lambda (output)
@@ -933,7 +959,10 @@
                             ,(kernel-file "dialect/dialect-development.o")
                             ,(kernel-file "foundation/foundation-runtime.o")
                             ,(kernel-file "scheme/scheme-backend.o")
-                            ,(kernel-file "scheme/scheme-dialect.o")))
+                            ,(kernel-file "scheme/scheme-dialect.o")
+                            ,(kernel-file "zen/zen-runtime.o")
+                            ,(kernel-file "zen/zen-backend.o")
+                            ,(kernel-file "zen/zen-core.o")))
               (main-file (product-file (string-append (main-filename) ".o")))
               (link-file (link-file)))
           (let ((c-files (append base-files (%%list main-file link-file))))

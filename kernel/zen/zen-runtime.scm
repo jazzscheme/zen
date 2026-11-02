@@ -6,7 +6,7 @@
 ;;;
 
 
-(unit protected zen/dialect/runtime
+(block zen.zen-runtime
 
 
 ;;;

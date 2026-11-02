@@ -73,6 +73,10 @@
     (<Project-Directory>              directory: {Directory :context "scheme"}
       (<Project-File>                 source: {File :context "scheme" "scheme-backend.scm"})
       (<Project-File>                 source: {File :context "scheme" "scheme-dialect.scm"}))
+    (<Project-Directory>              directory: {Directory :context "zen"}
+      (<Project-File>                 source: {File :context "zen" "zen-runtime.scm"})
+      (<Project-File>                 source: {File :context "zen" "zen-backend.scm"})
+      (<Project-File>                 source: {File :context "zen" "zen-core.scm"}))
     (<Project-File>                   source: {File :context "boot.scm"})
     (<Project-File>                   source: {File :context "build.scm"})
     (<Project-File>                   source: {File :context "updates"})

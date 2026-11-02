@@ -50,7 +50,10 @@
     "kernel/dialect/dialect-development"
     "kernel/foundation/foundation-runtime"
     "kernel/scheme/scheme-backend"
-    "kernel/scheme/scheme-dialect"))
+    "kernel/scheme/scheme-dialect"
+    "kernel/zen/zen-runtime"
+    "kernel/zen/zen-backend"
+    "kernel/zen/zen-core"))
 
 
 (define zen:Kernel-Setup

@@ -6,7 +6,7 @@
 ;;;
 
 
-(unit protected zen/backend/core
+(block zen.zen-core
 
 
 ;;;
