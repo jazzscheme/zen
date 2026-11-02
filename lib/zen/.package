@@ -5,10 +5,21 @@
   (authors "Guillaume Cartier" "Stephane Le Cornec")
   (stage release)
   (root "src")
-  (install zen/install)
+  (literals (Literal          zen/literals#construct-literal)
+            (Boxed            zen/literals#construct-boxed)
+            (Point            zen/literals#construct-point)
+            (Point$fl$        zen/literals#construct-point$fl$)
+            (Distance         zen/literals#construct-distance)
+            (Dimension        zen/literals#construct-dimension)
+            (Dimension$fl$    zen/literals#construct-dimension$fl$)
+            (Cell             zen/literals#construct-cell)
+            (Rect             zen/literals#construct-rect)
+            (Rect$fl$         zen/literals#construct-rect$fl$)
+            (Range            zen/literals#construct-range)
+            (Exception-Detail zen/literals#construct-exception-detail)
+            (Walk-Location    zen/literals#construct-walk-location))
   (products (zen (update zen
                          zen/core
-                         zen/install
                          zen/literals)
                  (dependencies zen.gambit)))
   (project ".project"))

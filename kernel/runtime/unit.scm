@@ -312,11 +312,30 @@
                                  (zen:make-repository name dir))))
                            source-specs)))
           (set! zen:Build-Repository build)
-          (set! zen:Repositories (%%cons build source)))))))
+          (set! zen:Repositories (%%cons build source))
+          (for-each zen:setup-repository source))))))
 
 
 (define (zen:make-repository name directory #!key (binary? #f))
   (%%make-repository name directory binary? #f))
+
+
+;; bazoo quicky for reader literals
+(define (zen:setup-repository repository)
+  (let ((directory (%%get-repository-directory repository)))
+    (for-each (lambda (name)
+                (let ((file (string-append directory name "/" ".package")))
+                  (if (file-exists? file)
+                      (let ((package-name (%%string->symbol name)))
+                        (let ((package (zen:load-package repository package-name file)))
+                          (let ((literals (%%get-package-literals package)))
+                            (if literals
+                                (for-each (lambda (spec)
+                                            (let ((name (%%car spec))
+                                                  (constructor-reference (%%cadr spec)))
+                                              (zen:register-literal name constructor-reference)))
+                                          literals))))))))
+              (zen:directory-directories directory))))
 
 
 (define (zen:repository-pathname repository path)
@@ -351,7 +370,7 @@
         (let ((name (%%cadr form))
               (alist (%%cddr form)))
           (if (%%eq? name package-name)
-              (let ((install (%%assq 'install alist))
+              (let ((literals (%%assq 'literals alist))
                     (char-encoding (%%assq 'char-encoding alist))
                     (products (%%assq 'products alist))
                     (profiles (%%assq 'profiles alist))
@@ -361,7 +380,7 @@
                     (authors (%%assq 'authors alist))
                     (stage (%%assq 'stage alist)))
                 (%%make-package repository name
-                  (if install (%%cadr install) #f)
+                  (if literals (%%cdr literals) #f)
                   (if char-encoding (%%cadr char-encoding) #f)
                   (if products (%%cdr products) '())
                   (if profiles (%%cdr profiles) '())
@@ -371,12 +390,6 @@
                   (if authors (%%cdr authors) #f)
                   (if stage (%%cadr stage) #f)))
             (zen:error "Package at {s} is defining: {s}" package-pathname name)))))))
-
-
-(define (zen:setup-package package)
-  (let ((install (%%get-package-install package)))
-    (if install
-        (zen:load-unit install))))
 
 
 (define (zen:inspect-install)
@@ -2081,13 +2094,13 @@
       (zen:error "Cannot construct literals of type {s}" name)))
 
 
-(zen:define-macro (zen:define-literal name constructor-reference)
+(define (zen:register-literal name constructor-reference)
   (receive (constructor-module constructor-name) (zen:break-reference constructor-reference)
     (let ((constructor-locator (zen:compose-reference constructor-module constructor-name)))
-      `(zen:register-literal-constructor ',name ',constructor-reference
-         (lambda (arguments)
-           (zen:load-unit ',constructor-module)
-           (%%apply (zen:global-ref ',constructor-locator) arguments))))))
+      (zen:register-literal-constructor name constructor-reference
+        (lambda (arguments)
+          (zen:load-unit constructor-module)
+          (%%apply (zen:global-ref constructor-locator) arguments))))))
 
 
 (define (zen:construct-literal name arguments)

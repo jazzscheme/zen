@@ -22,7 +22,6 @@
     (<Project-Directory>                directory: {Directory :context "language"}
       (<Jazz-File>       name: runtime  source: {File :context "language" "runtime.zen"})
       (<Project-File>                   source: {File :context "language" "loop.zen"}))
-    (<Project-File>                     source: {File :context "install.scm"})
     (<Jazz-File>         name: literals source: {File :context "literals.zen"})
     (<Jazz-File>         name: core     source: {File :context "core.zen"})
     (<Project-File>                     source: {File :context "_.zen"}))))

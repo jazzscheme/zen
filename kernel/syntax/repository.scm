@@ -55,7 +55,7 @@
 (zen:define-structure Package () (constructor: %%make-package predicate: zen:package? accessors-type: macro)
   ((repository    getter: generate)
    (name          getter: generate)
-   (install       getter: generate)
+   (literals      getter: generate)
    (char-encoding getter: generate)
    (products      getter: generate)
    (profiles      getter: generate setter: generate)
