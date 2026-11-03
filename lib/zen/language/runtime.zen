@@ -10433,16 +10433,16 @@
 (class package Walk-Location extends Object
   
   
-  (slot unit-locator        getter generate)
-  (slot declaration-locator getter generate)
-  (slot locat               getter generate)
-  (slot path                getter generate)
+  (slot unit-locator getter generate)
+  (slot locator      getter generate)
+  (slot locat        getter generate)
+  (slot path         getter generate)
   
   
-  (method override (initialize self unit-locator declaration-locator locat path)
+  (method override (initialize self unit-locator locator locat path)
     (nextmethod self)
     (set! self.unit-locator unit-locator)
-    (set! self.declaration-locator declaration-locator)
+    (set! self.locator locator)
     (set! self.locat locat)
     (set! self.path path))
   
@@ -10451,7 +10451,7 @@
     (format output "~{{a} {s} {s} {s} {s}}"
             (category-name (class-of self))
             unit-locator
-            declaration-locator
+            locator
             locat
             path)))
 

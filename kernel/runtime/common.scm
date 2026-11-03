@@ -335,8 +335,12 @@
 ;;;
 
 
-(define (zen:compose-reference . rest)
-  (%%string->symbol (zen:join-strings (map symbol->string rest) "#")))
+(define (zen:compose-reference s1 s2)
+  (%%compose-reference s1 s2))
+
+
+(define (zen:compose-member s1 s2)
+  (%%compose-member s1 s2))
 
 
 ;;;

@@ -423,7 +423,9 @@
 (zen:define-method (zen:compose-declaration-locator (zen:Declaration declaration))
   (let ((parent (zen:get-declaration-parent declaration))
         (name (zen:get-lexical-binding-name declaration)))
-    (%%compose-reference (zen:get-declaration-locator parent) name)))
+    (if (%%class-is? parent zen:Module-Declaration)
+        (%%compose-reference (zen:get-declaration-locator parent) name)
+      (%%compose-member (zen:get-declaration-locator parent) name))))
 
 
 (zen:define-method (zen:lookup-declaration (zen:Declaration declaration) symbol access source-declaration)
@@ -3699,14 +3701,14 @@
 
 
 (zen:define-class zen:Walk-Location zen:Object (metaclass: zen:Walk-Location-Class constructor: zen:allocate-walk-location)
-  ((unit-locator        getter: generate)
-   (declaration-locator getter: generate)
-   (locat               getter: generate)
-   (path                getter: generate)))
+  ((unit-locator getter: generate)
+   (locator      getter: generate)
+   (locat        getter: generate)
+   (path         getter: generate)))
 
 
-(define (zen:new-walk-location unit-locator declaration-locator locat path)
-  (zen:allocate-walk-location unit-locator declaration-locator locat path))
+(define (zen:new-walk-location unit-locator locator locat path)
+  (zen:allocate-walk-location unit-locator locator locat path))
 
 
 (define (zen:walk-location walker declaration locat)
@@ -4827,7 +4829,7 @@
 (define (zen:partition-walk-problems-declaration problems)
   (zen:partition problems
                   (lambda (problem)
-                    (%%symbol->string (zen:get-walk-location-declaration-locator (zen:get-walk-problem-location problem))))
+                    (%%symbol->string (zen:get-walk-location-locator (zen:get-walk-problem-location problem))))
                   assoc))
 
 

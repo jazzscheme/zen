@@ -45,7 +45,7 @@
 (define-syntax declaration-locator
   (lambda (form-src usage-environment macro-environment)
     (sourcify-deep-if
-      `(quote ,(apply compose-reference (get-declaration-path (current-declaration))))
+      `(quote ,(get-declaration-locator (current-declaration)))
       form-src)))
 
 

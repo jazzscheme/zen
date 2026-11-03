@@ -2537,7 +2537,7 @@
 (define (zen:update-method class method-name method-implementation)
   (let ((owner (zen:locate-method-owner class method-name)))
     (let ((method (%%get-category-field owner method-name))
-          (method-locator (%%compose-reference (%%get-category-identifier class) method-name)))
+          (method-locator (%%compose-member (%%get-category-identifier class) method-name)))
       (zen:global-set! method-locator method-implementation)
       (if (%%eq? owner class)
           (case (%%get-method-dispatch-type method)

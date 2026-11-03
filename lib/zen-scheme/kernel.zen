@@ -59,6 +59,7 @@
 (native zen:setup-declaration)
 (native zen:get-declaration-path)
 (native zen:get-declaration-toplevel)
+(native zen:get-declaration-locator)
 (native zen:walk)
 (native zen:walk-list)
 (native zen:get-and-expressions)
