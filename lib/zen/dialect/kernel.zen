@@ -6,7 +6,7 @@
 ;;;
 
 
-(module protected zen/dialect/kernel zen.scheme
+(module protected zen/dialect/kernel zen-scheme
 
 
 ;;;

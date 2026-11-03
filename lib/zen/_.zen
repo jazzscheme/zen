@@ -6,10 +6,10 @@
 ;;;
 
 
-(module zen zen.scheme:
+(module zen zen-scheme:
 
 
-(export (zen.gambit (except break current-directory current-time error print seconds->time time->seconds time? trace unbreak untrace))
+(export (zen-gambit (except break current-directory current-time error print seconds->time time->seconds time? trace unbreak untrace))
         
         (zen/dialect (phase syntax))
         (zen/dialect/syntax (phase syntax))

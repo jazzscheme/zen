@@ -52,12 +52,12 @@
 
 
 (zen:define-method (zen:walker-declarations (zen:Scheme-Walker walker))
-  (cons (zen:get-dialect-declarations (zen:get-dialect 'zen.scheme))
+  (cons (zen:get-dialect-declarations (zen:get-dialect 'zen-scheme))
         (nextmethod walker)))
 
 
 (zen:define-method (zen:walker-bindings (zen:Scheme-Walker walker))
-  (cons (zen:get-dialect-bindings (zen:get-dialect 'zen.scheme))
+  (cons (zen:get-dialect-bindings (zen:get-dialect 'zen-scheme))
         (nextmethod walker)))
 
 
@@ -1315,36 +1315,36 @@
 ;;;
 
 
-(zen:define-dialect zen.scheme
-  (zen:new-scheme-dialect 'zen.scheme))
+(zen:define-dialect zen-scheme
+  (zen:new-scheme-dialect 'zen-scheme))
 
-(zen:define-dialect zen.scheme.dialect
-  (zen:new-scheme-dialect 'zen.scheme))
+(zen:define-dialect zen-scheme.dialect
+  (zen:new-scheme-dialect 'zen-scheme))
 
 
-(zen:define-walker-declaration define              zen.scheme zen:walk-define-declaration zen:walk-define)
-(zen:define-walker-declaration define-macro        zen.scheme zen:walk-define-macro-declaration zen:walk-define-macro)
-(zen:define-walker-declaration define-special-form zen.scheme zen:walk-define-special-form-declaration zen:walk-define-special-form)
+(zen:define-walker-declaration define              zen-scheme zen:walk-define-declaration zen:walk-define)
+(zen:define-walker-declaration define-macro        zen-scheme zen:walk-define-macro-declaration zen:walk-define-macro)
+(zen:define-walker-declaration define-special-form zen-scheme zen:walk-define-special-form-declaration zen:walk-define-special-form)
 ;; quicky to put this here
-(zen:define-walker-declaration special-form        zen.scheme zen:walk-define-special-form-declaration zen:walk-define-special-form)
-(zen:define-walker-special     cond-expand         zen.scheme zen:walk-cond-expand)
-(zen:define-walker-special     quote               zen.scheme zen:walk-quote)
-(zen:define-walker-special     begin               zen.scheme zen:walk-begin)
-(zen:define-walker-special     lambda              zen.scheme zen:walk-lambda)
-(zen:define-walker-special     let                 zen.scheme zen:walk-let)
-(zen:define-walker-special     let*                zen.scheme zen:walk-letstar)
-(zen:define-walker-special     letrec              zen.scheme zen:walk-letrec)
-(zen:define-walker-special     let-macro           zen.scheme zen:walk-let-macro)
-(zen:define-walker-special     let-symbol          zen.scheme zen:walk-let-symbol)
-(zen:define-walker-special     receive             zen.scheme zen:walk-receive)
-(zen:define-walker-special     set!                zen.scheme zen:walk-setbang)
-(zen:define-walker-special     and                 zen.scheme zen:walk-and)
-(zen:define-walker-special     or                  zen.scheme zen:walk-or)
-(zen:define-walker-special     if                  zen.scheme zen:walk-if)
-(zen:define-walker-special     case                zen.scheme zen:walk-case)
-(zen:define-walker-special     cond                zen.scheme zen:walk-cond)
-(zen:define-walker-special     do                  zen.scheme zen:walk-do)
-(zen:define-walker-special     delay               zen.scheme zen:walk-delay)
-(zen:define-walker-special     quasiquote          zen.scheme zen:walk-quasiquote)
-(zen:define-walker-special     unspecific          zen.scheme zen:walk-unspecific)
-(zen:define-walker-special     reify-reference     zen.scheme zen:walk-reify-reference))
+(zen:define-walker-declaration special-form        zen-scheme zen:walk-define-special-form-declaration zen:walk-define-special-form)
+(zen:define-walker-special     cond-expand         zen-scheme zen:walk-cond-expand)
+(zen:define-walker-special     quote               zen-scheme zen:walk-quote)
+(zen:define-walker-special     begin               zen-scheme zen:walk-begin)
+(zen:define-walker-special     lambda              zen-scheme zen:walk-lambda)
+(zen:define-walker-special     let                 zen-scheme zen:walk-let)
+(zen:define-walker-special     let*                zen-scheme zen:walk-letstar)
+(zen:define-walker-special     letrec              zen-scheme zen:walk-letrec)
+(zen:define-walker-special     let-macro           zen-scheme zen:walk-let-macro)
+(zen:define-walker-special     let-symbol          zen-scheme zen:walk-let-symbol)
+(zen:define-walker-special     receive             zen-scheme zen:walk-receive)
+(zen:define-walker-special     set!                zen-scheme zen:walk-setbang)
+(zen:define-walker-special     and                 zen-scheme zen:walk-and)
+(zen:define-walker-special     or                  zen-scheme zen:walk-or)
+(zen:define-walker-special     if                  zen-scheme zen:walk-if)
+(zen:define-walker-special     case                zen-scheme zen:walk-case)
+(zen:define-walker-special     cond                zen-scheme zen:walk-cond)
+(zen:define-walker-special     do                  zen-scheme zen:walk-do)
+(zen:define-walker-special     delay               zen-scheme zen:walk-delay)
+(zen:define-walker-special     quasiquote          zen-scheme zen:walk-quasiquote)
+(zen:define-walker-special     unspecific          zen-scheme zen:walk-unspecific)
+(zen:define-walker-special     reify-reference     zen-scheme zen:walk-reify-reference))

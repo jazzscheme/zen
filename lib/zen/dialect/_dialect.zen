@@ -6,9 +6,9 @@
 ;;;
 
 
-(module protected zen/dialect zen.scheme
+(module protected zen/dialect zen-scheme
 
 
 (export (zen/dialect/kernel)
         (zen/dialect/syntax (phase syntax))
-        (zen.gambit (except break current-directory current-time error print seconds->time time->seconds time? trace unbreak untrace))))
+        (zen-gambit (except break current-directory current-time error print seconds->time time->seconds time? trace unbreak untrace))))

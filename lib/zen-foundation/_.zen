@@ -6,7 +6,7 @@
 ;;;
 
 
-(module zen.foundation zen.foundation.dialect
+(module zen-foundation zen-foundation.dialect
 
 
 ;;;

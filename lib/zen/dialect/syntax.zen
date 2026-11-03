@@ -6,13 +6,13 @@
 ;;;
 
 
-(module protected zen/dialect/syntax zen.scheme
+(module protected zen/dialect/syntax zen-scheme
 
 
-(export (zen.scheme/syntax))
+(export (zen-scheme/syntax))
 
-(import (zen.scheme/syntax-rules (phase syntax))
-        (zen.gambit (only bitwise-ior open-output-string get-output-string string->keyword))
+(import (zen-scheme/syntax-rules (phase syntax))
+        (zen-gambit (only bitwise-ior open-output-string get-output-string string->keyword))
         (zen/dialect/kernel))
 
 

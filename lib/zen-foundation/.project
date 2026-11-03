@@ -14,5 +14,5 @@
 
 
 (form
-  (<Project>        name: zen.foundation description-file: {File :context ".package"}
+  (<Project>        name: zen-foundation description-file: {File :context ".package"}
     (<Project-File>                      source: {File :context "_.zen"}))))

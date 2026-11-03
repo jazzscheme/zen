@@ -6,10 +6,10 @@
 ;;;
 
 
-(module zen.gambit zen.scheme
+(module zen-gambit zen-scheme
 
 
-(export (zen.scheme))
+(export (zen-scheme))
 
 
 ;;;

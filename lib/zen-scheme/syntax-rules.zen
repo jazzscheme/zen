@@ -6,7 +6,7 @@
 ;;;
 
 
-(module zen.scheme/syntax-rules zen.scheme
+(module zen-scheme/syntax-rules zen-scheme
 
 
 (export syntax-rules)

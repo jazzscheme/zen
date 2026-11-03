@@ -1201,8 +1201,8 @@
         (stop-build? #f))
     (define (key-product? name)
       (%%memq name '(zen
-                     zen.foundation
-                     zen.scheme)))
+                     zen-foundation
+                     zen-scheme)))
     
     (define (atomic-output line)
       (mutex-lock! output-mutex)

@@ -6,7 +6,7 @@
 ;;;
 
 
-(module protected zen/language/loop zen.scheme
+(module protected zen/language/loop zen-scheme
 
 
 (export loop)

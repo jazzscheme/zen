@@ -6,7 +6,7 @@
 ;;;
 
 
-(module zen.scheme/syntax zen.scheme
+(module zen-scheme/syntax zen-scheme
 
 
 (export declaration-unit
@@ -15,8 +15,8 @@
         optional
         let-optionals*)
 
-(import (zen.scheme/kernel)
-        (zen.scheme/syntax-rules (phase syntax)))
+(import (zen-scheme/kernel)
+        (zen-scheme/syntax-rules (phase syntax)))
 
 
 (native private zen:error)

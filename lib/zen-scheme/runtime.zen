@@ -6,7 +6,7 @@
 ;;;
 
 
-(module protected zen.scheme/runtime zen.foundation.dialect
+(module protected zen-scheme/runtime zen-foundation.dialect
 
 
 ;;;

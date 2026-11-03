@@ -14,7 +14,7 @@
 
 
 (form
-  (<Project>        name: zen.scheme description-file: {File :context ".package"}
+  (<Project>        name: zen-scheme description-file: {File :context ".package"}
     (<Project-File>                  source: {File :context "_.zen"})
     (<Project-File>                  source: {File :context "core.zen"})
     (<Project-File>                  source: {File :context "kernel.zen"})

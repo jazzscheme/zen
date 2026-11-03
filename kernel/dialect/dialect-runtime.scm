@@ -73,7 +73,7 @@
 
 
 (define (zen:require-dialect name)
-  (%%unless (%%eq? name 'zen.foundation.dialect)
+  (%%unless (%%eq? name 'zen-foundation.dialect)
     (zen:load-unit name))
   (or (zen:get-dialect name)
       (zen:error "Unknown dialect: {s}" name)))
@@ -1283,7 +1283,7 @@
                (zen:enqueue queue `(##import ,unit-name))))
            
            (let ((dialect-name (zen:get-module-declaration-dialect-name declaration)))
-             (%%when (%%neq? dialect-name 'zen.foundation.dialect)
+             (%%when (%%neq? dialect-name 'zen-foundation.dialect)
                (enqueue-load dialect-name)))
            (for-each (lambda (require-invoice)
                        (let ((name (zen:get-require-invoice-name require-invoice))
@@ -1589,7 +1589,7 @@
 (define (zen:load-dialect-invoice dialect-name dialect-transformations)
   (if (%%not (%%symbol? dialect-name))
       (zen:error "Dialect must be a symbol: {s}" dialect-name)
-    (if (%%eq? dialect-name 'zen.foundation.dialect)
+    (if (%%eq? dialect-name 'zen-foundation.dialect)
         #f
       (zen:new-import-invoice
         dialect-name
@@ -3213,9 +3213,9 @@
               (let* ((env
                        (%%list
                          (zen:new-walk-frame
-                           (zen:get-dialect-bindings (zen:get-dialect 'zen.scheme)))
+                           (zen:get-dialect-bindings (zen:get-dialect 'zen-scheme)))
                          (zen:new-walk-frame
-                           (zen:get-dialect-bindings (zen:get-dialect 'zen.foundation)))))
+                           (zen:get-dialect-bindings (zen:get-dialect 'zen-foundation)))))
                      (env
                        (cond ((zen:get-dialect 'zen)
                               => (lambda (x)
@@ -3357,9 +3357,9 @@
               (let* ((env
                        (%%list
                          (zen:new-walk-frame
-                           (zen:get-dialect-bindings (zen:get-dialect 'zen.scheme)))
+                           (zen:get-dialect-bindings (zen:get-dialect 'zen-scheme)))
                          (zen:new-walk-frame
-                           (zen:get-dialect-bindings (zen:get-dialect 'zen.foundation)))))
+                           (zen:get-dialect-bindings (zen:get-dialect 'zen-foundation)))))
                      (env
                        (cond ((zen:get-dialect 'zen)
                               => (lambda (x)
@@ -3473,9 +3473,9 @@
                   (let* ((env
                            (%%list
                              (zen:new-walk-frame
-                               (zen:get-dialect-bindings (zen:get-dialect 'zen.scheme)))
+                               (zen:get-dialect-bindings (zen:get-dialect 'zen-scheme)))
                              (zen:new-walk-frame
-                               (zen:get-dialect-bindings (zen:get-dialect 'zen.foundation)))))
+                               (zen:get-dialect-bindings (zen:get-dialect 'zen-foundation)))))
                          (env
                            (cond ((zen:get-dialect 'zen)
                                   => (lambda (x)
@@ -4881,11 +4881,11 @@
 
 
 (zen:define-method (zen:walker-declarations (zen:Walker walker))
-  (%%list (zen:get-dialect-declarations (zen:get-dialect 'zen.foundation))))
+  (%%list (zen:get-dialect-declarations (zen:get-dialect 'zen-foundation))))
 
 
 (zen:define-method (zen:walker-bindings (zen:Walker walker))
-  (%%list (zen:get-dialect-bindings (zen:get-dialect 'zen.foundation))))
+  (%%list (zen:get-dialect-bindings (zen:get-dialect 'zen-foundation))))
 
 
 (define (zen:walker-declaration-environment walker)

@@ -12,7 +12,7 @@
 (require _irregex)
 
 
-(import (zen.scheme/kernel)
+(import (zen-scheme/kernel)
         (zen/language/loop (phase syntax)))
 
 

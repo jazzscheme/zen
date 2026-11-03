@@ -6,11 +6,11 @@
 ;;;
 
 
-(module zen.scheme/core zen.scheme
+(module zen-scheme/core zen-scheme
 
 
-(export (zen.scheme/kernel))
-(import (zen.scheme/kernel))
+(export (zen-scheme/kernel))
+(import (zen-scheme/kernel))
 
 
 (native zen:Any)

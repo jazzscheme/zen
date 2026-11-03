@@ -9,8 +9,8 @@
 (module zen/core zen
 
 
-(export (zen.scheme/kernel))
-(import (zen.scheme/kernel))
+(export (zen-scheme/kernel))
+(import (zen-scheme/kernel))
 
 
 (native zen:walk-error)

@@ -6,7 +6,7 @@
 ;;;
 
 
-(module zen.scheme/kernel zen.scheme
+(module zen-scheme/kernel zen-scheme
 
 
 ;;;
