@@ -4,7 +4,6 @@
   (description "Scheme dialect")
   (authors "Guillaume Cartier")
   (stage release)
-  (root "src")
   (products (zen-scheme (update zen-scheme
                                 zen-scheme/core
                                 zen-scheme/kernel

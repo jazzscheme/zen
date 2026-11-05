@@ -4,7 +4,6 @@
   (description "Gambit dialect")
   (authors "Guillaume Cartier")
   (stage experimental)
-  (root "src")
   (products (zen-gambit (update zen-gambit)
                         (dependencies zen-scheme)))
   (project ".project"))

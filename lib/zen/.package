@@ -4,7 +4,6 @@
   (description "Zen programming language")
   (authors "Guillaume Cartier" "Stephane Le Cornec")
   (stage release)
-  (root "src")
   (literals (Literal          zen/literals#construct-literal)
             (Boxed            zen/literals#construct-boxed)
             (Point            zen/literals#construct-point)

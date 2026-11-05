@@ -4,6 +4,5 @@
   (description "Zen foundation")
   (authors "Guillaume Cartier")
   (stage internal)
-  (root "src")
   (products (zen-foundation (update zen-foundation)))
   (project ".project"))
