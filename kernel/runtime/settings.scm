@@ -122,6 +122,9 @@
 (zen:define-setting zen:build-jobs
   #f)
 
+(zen:define-setting zen:build-target
+  #f)
+
 (zen:define-setting zen:build-configuration
   #f)
 

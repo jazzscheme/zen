@@ -6,24 +6,21 @@
 ;;;
 
 
-(block kernel.version
-
-
 ;;;
 ;;;; Version
 ;;;
 
 
-(zen:define-structure Version () (constructor: zen:make-version predicate: zen:version?)
-  ((number               getter: generate)
-   (gambit-version       getter: generate)
-   (gambit-stamp         getter: generate)
-   (rebuild              getter: generate)
-   (recompile            getter: generate)
-   (recompile-references getter: generate)
-   (sweep                getter: generate)
-   (update               getter: generate)
-   (description          getter: generate)))
+(define-type zen:version constructor: zen:make-version predicate: zen:version?
+  (number               zen:get-version-number zen:set-version-number)
+  (gambit-version       zen:get-version-gambit-version zen:set-version-gambit-version)
+  (gambit-stamp         zen:get-version-gambit-stamp zen:set-version-gambit-stamp)
+  (rebuild              zen:get-version-rebuild zen:set-version-rebuild)
+  (recompile            zen:get-version-recompile zen:set-version-recompile)
+  (recompile-references zen:get-version-recompile-references zen:set-version-recompile-references)
+  (sweep                zen:get-version-sweep zen:set-version-sweep)
+  (update               zen:get-version-update zen:set-version-update)
+  (description          zen:get-version-description zen:set-version-description))
 
 
 (define (zen:new-version
@@ -165,10 +162,10 @@
 ;;;
 
 
-(zen:define-structure Update () (constructor: zen:make-update)
-  ((version     getter: generate)
-   (targets     getter: generate)
-   (description getter: generate)))
+(define-type zen:update constructor: zen:make-update predicate: zen:update?
+  (version     zen:get-update-version zen:set-update-version)
+  (targets     zen:get-update-targets zen:set-update-targets)
+  (description zen:get-update-description zen:set-update-description))
 
 
 (define (zen:new-update
@@ -290,191 +287,24 @@
 ;;;
 
 
-(define zen:zen-settings-directory
+(define zen:settings-directory
   #f)
 
-(define zen:zen-settings-version
-  #f)
-
-(define zen:named-configurations-file
-  #f)
-
-(define zen:local-configurations-file
+(define zen:configurations-file
   "./.configurations")
 
 
 (define (zen:setup-settings)
-  (let ((settings-root (%%string-append (zen:home-directory) "/.zen/")))
-    (cond ((not (file-exists? settings-root))
-           (let ((version (zen:versioned-version 'settings (zen:get-zen-updates))))
-             (if version
-                 (begin
-                   (set! zen:zen-settings-directory (string-append settings-root (zen:present-version version) "/"))
-                   (set! zen:zen-settings-version version)
-                   (set! zen:named-configurations-file (string-append zen:zen-settings-directory ".configurations"))))))
-          (else
-           (set! zen:zen-settings-directory (zen:versioned-directory settings-root 'settings (zen:get-zen-updates) zen:convert-settings))
-           (set! zen:zen-settings-version (zen:versioned-version 'settings (zen:get-zen-updates)))
-           (set! zen:named-configurations-file (string-append zen:zen-settings-directory ".configurations"))))))
-
-
-(define (zen:convert-settings dir old)
-  (define (convert-initial)
-    (zen:convert-configurations dir
-      (lambda (configurations)
-        (map zen:convert-configuration-205000 configurations)))
-    205000)
-  
-  (define (convert-205000)
-    (zen:convert-configurations dir
-      (lambda (configurations)
-        (map zen:convert-configuration-205001 configurations)))
-    205001)
-  
-  (define (convert-205001)
-    205002)
-  
-  (define (convert-205002)
-    205003)
-  
-  (case old
-    ((#f) (convert-initial))
-    ((205000) (convert-205000))
-    ((205001) (convert-205001))
-    ((205002) (convert-205002))
-    (else #f)))
-
-
-(define (zen:convert-configurations dir converter)
-  (let ((configurations-file (string-append dir ".configurations")))
-    (define (read-configurations)
-      (call-with-input-file (list path: configurations-file eol-encoding: 'cr-lf)
-        (lambda (input)
-          (read-all input read))))
-    
-    (define (write-configurations configurations)
-      (call-with-output-file (list path: configurations-file #; eol-encoding: #; (zen:platform-eol-encoding (zen:guess-platform)))
-        (lambda (output)
-          (for-each (lambda (configuration)
-                      (write configuration output)
-                      (newline output))
-                    configurations))))
-    
-    (if (file-exists? configurations-file)
-        (write-configurations (converter (read-configurations))))))
-
-
-(define (zen:convert-configuration-205000 configuration)
-  (zen:convert-properties configuration
-    (lambda (property value)
-      (case property
-        ((interpret-kernel?:) (list kernel-interpret?: value))
-        ((source-access?:) (list))
-        (else (list property value))))))
-
-
-(define (zen:convert-configuration-205001 configuration)
-  (zen:convert-properties configuration
-    (lambda (property value)
-      (case property
-        ((destination:) (list destination: (if (string? value) (zen:string-replace value #\: #\/) value)))
-        (else (list property value))))))
-
-
-(define (zen:convert-properties plist converter)
-  (let iter ((scan plist) (result '()))
-    (if (null? scan)
-        result
-      (iter (cddr scan) (append result (converter (car scan) (cadr scan)))))))
+  (let ((settings-root (string-append (zen:home-directory) "/.zen/")))
+    (zen:create-directory settings-root)
+    (set! zen:settings-directory settings-root)))
 
 
 (define (zen:load-global/local filename)
-  (let ((global (string-append zen:zen-settings-directory filename))
+  (let ((global (string-append zen:settings-directory filename))
         (local filename))
     (zen:load-if-exists global)
     (zen:load-if-exists local)))
-
-
-;;;
-;;;; Configurations
-;;;
-
-;; to test cross compiling
-
-
-(define zen:named-configurations
-  #f)
-
-
-(define (zen:get-named-configurations)
-  (or zen:named-configurations
-      (let ((configurations
-              (if (file-exists? zen:named-configurations-file)
-                  (call-with-input-file (list path: zen:named-configurations-file eol-encoding: 'cr-lf)
-                    (lambda (input)
-                      (define (read-configuration input)
-                        (let ((list (read input)))
-                          (if (eof-object? list)
-                              list
-                            (apply zen:new-named-configuration list))))
-                
-                      (read-all input read-configuration)))
-                '())))
-        (set! zen:named-configurations configurations)
-        configurations)))
-
-
-(define (zen:find-named-configuration name)
-  (let iter ((configurations (zen:get-named-configurations)))
-    (if (null? configurations)
-        #f
-      (let ((configuration (car configurations)))
-        (if (eq? (zen:get-configuration-name configuration) name)
-            configuration
-          (iter (cdr configurations)))))))
-
-
-(define (zen:new-named-configuration
-          #!key
-          (name (%%unspecified))
-          (system (%%unspecified))
-          (platform (%%unspecified))
-          (compiler (%%unspecified))
-          (processor (%%unspecified))
-          (windowing (%%unspecified))
-          (safety (%%unspecified))
-          (optimize? (%%unspecified))
-          (debug-environments? (%%unspecified))
-          (debug-location? (%%unspecified))
-          (debug-source? (%%unspecified))
-          (debug-foreign? (%%unspecified))
-          (track-memory? (%%unspecified))
-          (mutable-bindings? (%%unspecified))
-          (kernel-interpret? (%%unspecified))
-          (destination (%%unspecified))
-          (features (%%unspecified))
-          (properties (%%unspecified))
-          (local? #f))
-  (zen:make-configuration
-    name
-    system
-    platform
-    compiler
-    processor
-    windowing
-    safety
-    optimize?
-    debug-environments?
-    debug-location?
-    debug-source?
-    debug-foreign?
-    track-memory?
-    mutable-bindings?
-    kernel-interpret?
-    destination
-    features
-    properties
-    local?))
 
 
 ;;;
@@ -482,7 +312,7 @@
 ;;;
 
 
-(define (zen:save-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? kernel-interpret? destination features properties file system-platform)
+(define (zen:save-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties file system-platform)
   (call-with-output-file (list path: file eol-encoding: (zen:platform-eol-encoding system-platform))
     (lambda (output)
       (display "(configuration " output)
@@ -490,12 +320,12 @@
       (newline output)
       (newline output)
       (display "  " output)
-      (zen:print-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? kernel-interpret? destination features properties output)
+      (zen:print-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties output)
       (display ")" output)
       (newline output))))
 
 
-(define (zen:print-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? kernel-interpret? destination features properties output)
+(define (zen:print-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties output)
   (define first?
     #t)
   
@@ -522,7 +352,6 @@
   (print-property debug-foreign?: debug-foreign?)
   (print-property track-memory?: track-memory?)
   (print-property mutable-bindings?: mutable-bindings?)
-  (print-property kernel-interpret?: kernel-interpret?)
   (print-property destination: destination)
   (print-property features: features)
   (print-property properties: properties)
@@ -572,4 +401,4 @@
 
 (define (zen:destination-directory name destination dir)
   (zen:dirname-normalize
-    (or destination "bin"))))
+    (or destination "bin")))

@@ -176,7 +176,7 @@ end-of-code
   (lambda ()
     (with-exception-catcher
       (lambda (exc)
-        (let ((dir (or zen:zen-settings-directory (%%string-append (zen:home-directory) "/.zen/"))))
+        (let ((dir (or zen:settings-directory (%%string-append (zen:home-directory) "/.zen/"))))
           (zen:create-directory dir)
           (call-with-output-file (%%string-append dir "exit.exception")
             (lambda (port)
@@ -278,7 +278,7 @@ end-of-code
 (declare (proper-tail-calls))
 
 
-(define (zen:executable-main)
+(define (zen:zen-main)
   (define (missing-argument-for-option opt)
     (set! zen:warnings
           (lambda (output-port)
@@ -305,7 +305,6 @@ end-of-code
         (call-with-input-string arg read)
       arg))
   
-  ;; c -> compile
   ;; e -> eval
   ;; f -> force
   ;; g -> gambit
@@ -322,7 +321,7 @@ end-of-code
     (lambda ()
       (zen:split-command-line (zen:command-arguments)
                                '("v" "version" "nosource" "debug" "f" "force" "force-outlines" "sweep" "worker" "reporting" "keep-c" "track-scheme" "expansion" "gvm" "emit" "dry" "g" "gambit")
-                               '("build-repository" "repositories" "dependencies" "recompile-references" "e" "eval" "i" "interpret" "l" "load" "t" "test" "r" "run" "update" "make" "build" "download" "install" "deploy" "p" "parse" "s" "sourcify" "shape" "x" "expand" "k" "check" "y" "verify" "c" "compile" "report" "d" "debugger" "link" "j" "jobs" "port" "load-feedback" "load-expected" "m" "module" "dialect" "listen")
+                               '("build-repository" "repositories" "dependencies" "recompile-references" "e" "eval" "i" "interpret" "l" "load" "t" "test" "r" "run" "p" "parse" "s" "sourcify" "shape" "x" "expand" "k" "check" "y" "verify" "report" "d" "debugger" "link" "j" "jobs" "port" "load-feedback" "load-expected" "m" "module" "dialect" "listen")
                                missing-argument-for-option
         (lambda (commands options remaining)
           (let ((version? (or (zen:find-option "v" options) (zen:find-option "version" options)))
@@ -348,19 +347,12 @@ end-of-code
                 (interpret (or (zen:find-option "i" options) (zen:find-option "interpret" options)))
                 (test (or (zen:find-option "t" options) (zen:find-option "test" options)))
                 (run (or (zen:find-option "r" options) (zen:find-option "run" options)))
-                (update (zen:find-option "update" options))
-                (make (zen:find-option "make" options))
-                (build (zen:find-option "build" options))
-                (download (zen:find-option "download" options))
-                (install (zen:find-option "install" options))
-                (deploy (zen:find-option "deploy" options))
                 (parse (or (zen:find-option "p" options) (zen:find-option "parse" options)))
                 (sourcify (or (zen:find-option "s" options) (zen:find-option "sourcify" options)))
                 (shape (zen:find-option "shape" options))
                 (expand (or (zen:find-option "x" options) (zen:find-option "expand" options)))
                 (check (or (zen:find-option "k" options) (zen:find-option "check" options)))
                 (verify (or (zen:find-option "y" options) (zen:find-option "verify" options)))
-                (compile (or (zen:find-option "c" options) (zen:find-option "compile" options)))
                 (report (zen:find-option "report" options))
                 (reporting? (zen:find-option "reporting" options))
                 (debugger (or (zen:find-option "d" options) (zen:find-option "debugger" options)))
@@ -396,46 +388,6 @@ end-of-code
             (define (setup-runtime)
               (setup-kernel)
               (setup-repositories #f #t))
-            
-            (define (setup-build #!optional (make? #f))
-              (zen:setup-kernel-source)
-              (setup-kernel)
-              (setup-repositories make? #f)
-              (set! zen:link (or link (zen:build-link)))
-              (set! zen:link-options (zen:parse-link zen:link))
-              (set! zen:jobs jobs)
-              (set! zen:recompile-references recompile-references)
-              (if (not zen:kernel-interpreted?)
-                  (zen:disable-crash-window))
-              (if (or debug? (%%eqv? jobs 0) recompile-references dry? force-outlines?)
-                  (zen:debug-build? #t))
-              (if keep-c?
-                  (set! zen:compile-options (%%cons 'keep-c zen:compile-options)))
-              (if track-scheme?
-                  (set! zen:compile-options (%%cons 'track-scheme zen:compile-options)))
-              (if expansion?
-                  (set! zen:compile-options (%%cons 'expansion zen:compile-options)))
-              (if gvm?
-                  (set! zen:compile-options (%%cons 'gvm zen:compile-options)))
-              (if emit?
-                  (zen:save-emit? #t))
-              (if dry?
-                  (zen:dry-run? #t))
-              (if force-outlines?
-                  (zen:force-outlines? #t))
-              (if report
-                  (zen:setup-report report))
-              (if reporting?
-                  (zen:setup-reporting)))
-            
-            (define (setup-dowload)
-              (setup-build))
-            
-            (define (setup-install)
-              (setup-build))
-            
-            (define (setup-deploy)
-              (setup-build))
             
             (define (run-scripts lst)
               (let iter ((scan lst))
@@ -507,71 +459,30 @@ end-of-code
                    (setup-runtime)
                    (zen:run-product zen:product))
                   (parse
-                   (setup-build)
+                   (setup-runtime)
                    ((zen:global-ref 'zen:parse-source) (%%string->symbol parse)))
                   (sourcify
-                   (setup-build)
+                   (setup-runtime)
                    ((zen:global-ref 'zen:expand-source) (%%string->symbol sourcify)))
                   (shape
-                   (setup-build)
+                   (setup-runtime)
                    ((zen:global-ref 'zen:shape-unit) (%%string->symbol shape)))
                   (expand
-                   (setup-build)
+                   (setup-runtime)
                    ((zen:global-ref 'zen:expand-to) (%%string->symbol expand)))
                   (check
-                   (setup-build)
+                   (setup-runtime)
                    ((zen:global-ref 'zen:check-unit) (%%string->symbol check)))
                   (verify
-                   (setup-build)
+                   (setup-runtime)
                    ((zen:global-ref 'zen:verify-unit) (%%string->symbol verify)))
-                  (compile
-                   (setup-build)
-                   (for-each (lambda (name)
-                               (zen:custom-compile-unit (%%string->symbol name) force?: force?))
-                             (zen:split-string compile #\;)))
-                  (update
-                   (setup-build)
-                   (zen:update-product (%%string->symbol update)))
-                  (make
-                   (setup-build #t)
-                   (exit (zen:make-product (%%string->symbol make))))
-                  (worker?
-                   (setup-build)
-                   (zen:worker-process port))
-                  (build
-                   (setup-build)
-                   (let ((name (%%string->symbol build)))
-                     (define (assert-build-configuration)
-                       (if (%%not (zen:build-configuration))
-                           (zen:error "Building a kernel requires an explicit target")))
-                     
-                     (case name
-                       ((kernel)
-                        (assert-build-configuration)
-                        (zen:build-kernel))
-                       ((kernellib)
-                        (assert-build-configuration)
-                        (zen:build-kernel image: 'library))
-                       (else
-                        (zen:build-product name)))))
-                  (download
-                   (setup-dowload)
-                   (zen:download-product (%%string->symbol download)))
-                  (install
-                   (setup-install)
-                   (zen:install-product (%%string->symbol install)))
-                  (deploy
-                   (setup-deploy)
-                   (zen:deploy-product (%%string->symbol deploy)))
                   ((or (%%not (%%null? commands))
                        (%%not (%%null? remaining)))
                    (setup-runtime)
                    (zen:setup-script)
                    (run-scripts (%%append commands remaining)))
                   (else
-                   (if debug?
-                       (setup-build)
-                     (setup-runtime))
+                   (setup-runtime)
                    (zen:repl-main gambit? module dialect)))))))))
 
 

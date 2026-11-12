@@ -14,12 +14,22 @@
 
 (form
   (<Project>             name: kernel
+    (<Project-Directory>              directory: {Directory :context "base"}
+      (<Project-File>                 source: {File :context "base" "core.scm"})
+      (<Project-File>                 source: {File :context "base" "manifest.scm"})
+      (<Project-File>                 source: {File :context "base" "version.scm"}))
+    (<Project-Directory>              directory: {Directory :context "mu"}
+      (<Project-File>                 source: {File :context "mu" "build.scm"})
+      (<Project-File>                 source: {File :context "mu" "compile.scm"})
+      (<Project-File>                 source: {File :context "mu" "main.scm"})
+      (<Project-File>                 source: {File :context "mu" "configuration.scm"})
+      (<Project-File>                 source: {File :context "mu" "boot.scm"})
+      (<Project-File>                 source: {File :context "mu" "parallel.scm"})
+      (<Project-File>                 source: {File :context "mu" "mu#.scm"}))
     (<Project-Directory>              directory: {Directory :context "runtime"}
       (<Project-File>                 source: {File :context "runtime" "advise.scm"})
       (<Project-File>                 source: {File :context "runtime" "base.scm"})
-      (<Project-File>                 source: {File :context "runtime" "build.scm"})
       (<Project-File>                 source: {File :context "runtime" "common.scm"})
-      (<Project-File>                 source: {File :context "runtime" "configuration.scm"})
       (<Project-File>                 source: {File :context "runtime" "crash.scm"})
       (<Project-File>                 source: {File :context "runtime" "digest.scm"})
       (<Project-File>                 source: {File :context "runtime" "install.scm"})
@@ -28,13 +38,11 @@
       (<Project-File>                 source: {File :context "runtime" "settings.scm"})
       (<Project-File>                 source: {File :context "runtime" "setup.scm"})
       (<Project-File>                 source: {File :context "runtime" "unit.scm"})
-      (<Project-File>                 source: {File :context "runtime" "version.scm"})
       (<Project-File>                 source: {File :context "runtime" "product.scm"})
       (<Project-File>                 source: {File :context "runtime" "logging.scm"})
       (<Project-File>                 source: {File :context "runtime" "embedded.scm"})
       (<Project-File>                 source: {File :context "runtime" "binary.scm"})
-      (<Project-File>                 source: {File :context "runtime" "restricted.scm"})
-      (<Project-File>                 source: {File :context "runtime" "compile.scm"}))
+      (<Project-File>                 source: {File :context "runtime" "restricted.scm"}))
     (<Project-Directory>              directory: {Directory :context "syntax"}
       (<Project-File>                 source: {File :context "syntax" "block.scm"})
       (<Project-File>                 source: {File :context "syntax" "declares.scm"})
@@ -76,9 +84,8 @@
     (<Project-Directory>              directory: {Directory :context "zen"}
       (<Project-File>                 source: {File :context "zen" "zen-runtime.scm"})
       (<Project-File>                 source: {File :context "zen" "zen-backend.scm"})
-      (<Project-File>                 source: {File :context "zen" "zen-core.scm"}))
-    (<Project-File>                   source: {File :context "boot.scm"})
-    (<Project-File>                   source: {File :context "build.scm"})
+      (<Project-File>                 source: {File :context "zen" "zen-core.scm"})
+      (<Project-File>                 source: {File :context "zen" "zen-foundation.scm"}))
     (<Project-File>                   source: {File :context "updates"})
     (<Project-File>                   source: {File :context "versions"})
     (<Project-File>                   source: {File :context "mu.scm"}))))

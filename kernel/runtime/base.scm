@@ -636,15 +636,11 @@
 
 
 (define (zen:report fmt-string . rest)
-  (let ((message (apply zen:format fmt-string rest)))
-    (cond (zen:worker-port
-           (write (cons 'report message) zen:worker-port)
-           (force-output zen:worker-port))
-          (zen:*report-port*
-           (let ((port zen:*report-port*))
-             (display message port)
-             (newline port)
-             (force-output port))))))
+  (let ((message (apply zen:format fmt-string rest))
+        (port zen:*report-port*))
+    (display message port)
+    (newline port)
+    (force-output port)))
 
 
 ;;;

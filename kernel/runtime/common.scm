@@ -109,7 +109,7 @@
 
 
 (define (zen:load-configuration-files filename install?)
-  (let ((global (and zen:zen-settings-directory (%%string-append zen:zen-settings-directory filename)))
+  (let ((global (and zen:settings-directory (%%string-append zen:settings-directory filename)))
         (local filename))
     (if install?
         (zen:load-if-exists (zen:install-path filename)))
@@ -136,6 +136,7 @@
 ;;;
 
 
+#; ( ;; tanzoo
 (zen:define-variable zen:manifest-needs-rebuild?
   (lambda rest
     #f))
@@ -146,25 +147,7 @@
 (zen:define-variable zen:build-kernel #f)
 (zen:define-variable zen:build-image #f)
 (zen:define-variable zen:build-library #f)
-
-
-;;;
-;;;; Custom build
-;;;
-
-
-(define (zen:custom-compile/build unit-specs #!key (unit #f) (pre-build #f) (force? #f))
-  (if unit
-      (let ((compile-args (assq unit unit-specs)))
-        (if compile-args
-            (apply zen:compile-unit `(,@compile-args force?: ,force?))
-          (zen:compile-unit unit force?: force?)))
-    (begin
-      (if pre-build
-          (pre-build))
-      (for-each (lambda (compile-args)
-                  (apply zen:compile-unit `(,@compile-args force?: ,force?)))
-                unit-specs))))
+)
 
 
 ;;;
