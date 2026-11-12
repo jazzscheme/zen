@@ -6,7 +6,7 @@
 ;;;
 
 
-(block core.exception-classes
+(block core/exception-classes
 
 
 ;;;

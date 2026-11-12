@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.compile
+(block kernel/compile
 
 
 ;;;
@@ -81,10 +81,6 @@
                            references)
             #f))
       #f)))
-
-
-(zen:define-variable-override zen:manifest-valid?
-  zen:manifest-references-valid?)
 
 
 ;;;
@@ -182,9 +178,9 @@
 (define (zen:wrap-antivirus-hack-around manifest-name str)
   (cond-expand
     (windows (case manifest-name
-               ((zen.ui/view/Tab-View)
+               ((zen-ui/view/Tab-View)
                 (string-append "-Os " str))
-               ((zen.project/project/Project)
+               ((zen-project/project/Project)
                 (string-append "-Os " str))
                (else
                 str)))
@@ -319,6 +315,7 @@
                      (zen:compiled-source src))
         ;; temporary until a cleaner solution
         (zen:set-gensym-counter! -1)
+        (pp (list 'compile-file-to-target src-pathname output: bin-output options: options))
         (if (not (and (compile-file-to-target src-pathname output: bin-output options: options)
                       (if ios?
                           (let ((custom-cc-options ios-custom-cc-options))
@@ -336,7 +333,9 @@
                                      path: (zen:custom-cc-path custom-cc)
                                      arguments: `("-D___SUPPORT_MULTIPLE_C_COMPILERS" "-D___DONT_USE_builtin_setjmp" ,@(zen:custom-cc-arguments custom-cc) ,(%%string-append "-I" gambit-include-dir) ,@(zen:split-string cc-options #\space) "-c" "-o" ,(string-append bin-pathname-base ".o") ,bin-output)
                                      show-console: #f)))))
-                          (compile-file bin-output options: (%%cons 'obj options) cc-options: (string-append "-D___DYNAMIC " cc-options))))))
+                          (begin
+                          (pp (list 'compile-file bin-output options: (%%cons 'obj options) cc-options: (string-append "-D___DYNAMIC " cc-options)))
+                          (compile-file bin-output options: (%%cons 'obj options) cc-options: (string-append "-D___DYNAMIC " cc-options)))))))
             (zen:error "Compilation failed")))))
   
   (define (update-manifest)

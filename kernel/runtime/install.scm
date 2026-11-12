@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.install
+(block kernel/install
 
 
 (cond-expand

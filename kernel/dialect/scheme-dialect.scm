@@ -6,7 +6,7 @@
 ;;;
 
 
-(block scheme.scheme-dialect
+(block dialect/scheme-dialect
 
 
 ;;;

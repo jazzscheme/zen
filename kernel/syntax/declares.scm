@@ -13,7 +13,7 @@
   (not safe))
 
 
-(zen:verbose-kernel 'kernel.declares)
+(zen:verbose-kernel 'kernel/declares)
 
 
 (define zen:not-standard-bindings
@@ -38,7 +38,7 @@
      
      ,@(if #f
            #; ;; this inline declaration or the one below breaks
-              ;; compilation of zen.git/foreign for some reason
+              ;; compilation of zen-git/foreign for some reason
            (eq? zen:kernel-safety 'sealed)
            '()
          '((not inline)))
@@ -76,7 +76,7 @@
       ;; and really bloat the size of the generated .o1 files
       ,@(if #f
             #; ;; this inline declaration or the one below breaks
-            ;; compilation of zen.git/foreign for some reason
+            ;; compilation of zen-git/foreign for some reason
             (eq? zen:kernel-safety 'sealed)
             '()
           '((not inline)))

@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.crash
+(block kernel/crash
 
 
 (define (zen:log-backtrace ignore)

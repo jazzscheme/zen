@@ -20,6 +20,7 @@
     "kernel/syntax/primitives"
     "kernel/syntax/internal"
     "kernel/syntax/structure"
+    "kernel/syntax/foreign"
     "kernel/syntax/syntax"
     "kernel/syntax/runtime"
     "kernel/runtime/settings"
@@ -31,9 +32,10 @@
     "kernel/runtime/version"
     "kernel/runtime/common"
     "kernel/runtime/advise"
-    "kernel/runtime/build"
     "kernel/runtime/digest"
     "kernel/runtime/readtable"
+    "kernel/runtime/unit"
+    "kernel/mu/build"
     "kernel/core/base-syntax"
     "kernel/core/base-runtime"
     "kernel/core/class-syntax"
@@ -48,23 +50,17 @@
     "kernel/dialect/dialect-runtime"
     "kernel/dialect/dialect-expression"
     "kernel/dialect/dialect-development"
-    "kernel/foundation/foundation-runtime"
-    "kernel/scheme/scheme-backend"
-    "kernel/scheme/scheme-dialect"
-    "kernel/zen/zen-runtime"
-    "kernel/zen/zen-backend"
-    "kernel/zen/zen-core"))
-
-
-(define zen:Kernel-Setup
-  '("kernel/runtime/unit"
-    "kernel/runtime/readtable"
-    "kernel/runtime/setup"))
+    "kernel/dialect/foundation-runtime"
+    "kernel/dialect/scheme-backend"
+    "kernel/dialect/scheme-dialect"
+    "kernel/dialect/zen-runtime"
+    "kernel/dialect/zen-backend"
+    "kernel/dialect/zen-core"))
 
 
 (define zen:load-kernel
   (let ((loaded? #f))
-    (lambda (setup? #!optional (interpret? #t))
+    (lambda (config)
       (define verbose?
         #f)
       
@@ -81,9 +77,9 @@
       
       (if (not loaded?)
           (begin
-            (if (not interpret?)
-                (load-file "kernel/runtime/product"))
+            ;; tanzoo
+            (load-file (string-append "build/" config "/build/_architecture"))
+            (load-file (string-append "build/" config "/build/_product"))
+    
             (load-files zen:Kernel)
-            (if setup?
-                (load-files zen:Kernel-Setup))
             (set! loaded? #t))))))

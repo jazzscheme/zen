@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.runtime
+(block kernel/runtime
 
 
 ;;;

@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.repository
+(block kernel/repository
 
 
 ;;;

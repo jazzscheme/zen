@@ -6,7 +6,7 @@
 ;;;
 
 
-(block zen.zen-backend
+(block dialect/zen-backend
 
 
 ;;;

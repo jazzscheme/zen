@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.expansion
+(block kernel/expansion
 
 
 (declare (not safe))
@@ -44,13 +44,13 @@
 (define (zen:generate-global-symbol #!optional (prefix "sym"))
   (let ((for (zen:generate-symbol-for))
         (context (zen:generate-symbol-context)))
-    (cond ((%%not for)
+    (cond ((not for)
            (error "Invalid call to generate-global-symbol without a for"))
-          ((%%not context)
+          ((not context)
            (error "Invalid call to generate-global-symbol without a context"))
           (else
            (let ((module (symbol->string context)))
-             (let ((name (%%string-append module "_" prefix for)))
+             (let ((name (string-append module "_" prefix for)))
                (##gensym-interned (##string->symbol name))))))))
 
 
@@ -80,7 +80,7 @@
 
 
 (define (zen:null/pair? obj)
-  (or (%%null? obj) (%%pair? obj)))
+  (or (null? obj) (pair? obj)))
 
 
 ;;;

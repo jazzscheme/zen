@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.readtable
+(block kernel/readtable
 
 
 (define (zen:make-zen-readtable)

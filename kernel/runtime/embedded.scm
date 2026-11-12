@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.embedded
+(block kernel/embedded
 
 
 ;;;

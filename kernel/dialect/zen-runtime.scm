@@ -6,7 +6,7 @@
 ;;;
 
 
-(block zen.zen-runtime
+(block dialect/zen-runtime
 
 
 ;;;
@@ -1343,7 +1343,7 @@
 (zen:define-variable-override zen:emit-specialized-locator
   (lambda (locator arguments environment)
     (case locator
-      ((zen.dialect.kernel:class-of)
+      ((zen/dialect/kernel:class-of)
        (%%assert (and (%%pair? arguments) (%%null? (%%cdr arguments)))
          (zen:emit-specialized-class-of (%%car arguments) environment)))
       (else
@@ -1450,7 +1450,7 @@
 
 (zen:define-variable-override zen:emit-new-call
   (lambda (operator locator arguments arguments-codes declaration walker resume environment)
-    (if (%%eq? locator 'zen.dialect.kernel:new)
+    (if (%%eq? locator 'zen/dialect/kernel:new)
         (%%assert (%%pair? arguments)
           (let ((class-expression (%%car arguments)))
             (if (%%class-is? class-expression zen:Binding-Reference)
@@ -2354,7 +2354,7 @@
           (%%when (and (%%neq? (zen:walk-for) 'eval) (zen:get-definition-declaration-value new-declaration))
             (zen:walk-error walker resume declaration form-src "Cannot redefine definition: {s}" name))
           ;; adding source information for parameters (default for optional and keyword may be source code)
-          ;; zen:find-annotated fails on first keyword at zen.language.runtime:minimum
+          ;; zen:find-annotated fails on first keyword at zen/language/runtime:minimum
           ;; because (eq? variable annotated-variable) -> one points to a stale value
           (let ((new-environment (if #f #; parameters
                                      (receive (signature augmented-environment) (zen:walk-parameters walker resume declaration environment parameters #t #t)

@@ -6,7 +6,7 @@
 ;;;
 
 
-(block foundation.foundation-runtime
+(block dialect/foundation-runtime
 
 
 ;;;

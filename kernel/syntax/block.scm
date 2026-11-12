@@ -13,7 +13,7 @@
   (not safe))
 
 
-(zen:verbose-kernel 'kernel.block)
+(zen:verbose-kernel 'kernel/block)
 
 
 (define zen:testing?

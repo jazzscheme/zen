@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.setup
+(block kernel/setup
 
 
 ;;;
@@ -41,6 +41,7 @@ end-of-code
 ))
 
 
+#; ;; tanzoo
 ;; quick solution to make classes still objects for stack allocation
 (define zen:alloc-still-class
   (c-lambda (int) scheme-object
@@ -136,24 +137,6 @@ end-of-code
 (%%path->container-hook-set! zen:path->container-hook)
 (%%container->path-hook-set! zen:container->path-hook)
 (%%container->id-hook-set! zen:container->id-hook)
-
-
-;;;
-;;;; Common
-;;;
-
-
-(zen:define-variable zen:image-load-counter 0)
-(zen:define-variable zen:object-load-counter 0)
-(zen:define-variable zen:interpreted-load-counter 0)
-
-
-(define (zen:increment-image-load-counter)
-  (set! zen:image-load-counter (%%fx+ 1 zen:image-load-counter)))
-(define (zen:increment-object-load-counter)
-  (set! zen:object-load-counter (%%fx+ 1 zen:object-load-counter)))
-(define (zen:increment-interpreted-load-counter)
-  (set! zen:interpreted-load-counter (%%fx+ 1 zen:interpreted-load-counter)))
 
 
 ;;;
@@ -405,8 +388,7 @@ end-of-code
               (set! zen:link-options (zen:parse-link zen:link))
               (set! zen:jobs jobs)
               (set! zen:recompile-references recompile-references)
-              (if (not zen:kernel-interpreted?)
-                  (zen:disable-crash-window))
+              (zen:disable-crash-window)
               (if (or debug? (%%eqv? jobs 0) recompile-references dry? force-outlines?)
                   (zen:debug-build? #t))
               (if keep-c?

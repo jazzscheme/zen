@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.base
+(block kernel/base
 
 
 ;;;

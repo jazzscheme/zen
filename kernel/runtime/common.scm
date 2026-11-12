@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.common
+(block kernel/common
 
 
 ;;;
@@ -129,23 +129,6 @@
         (zen:process-zenini #t))
     (if zen:kernel-zenini-access?
         (zen:load-if-exists (zen:install-path zen:zenini)))))
-
-
-;;;
-;;;; Build
-;;;
-
-
-(zen:define-variable zen:manifest-needs-rebuild?
-  (lambda rest
-    #f))
-
-(zen:define-variable zen:get-changed-units #f)
-(zen:define-variable zen:push-changed-units #f)
-(zen:define-variable zen:reset-changed-units #f)
-(zen:define-variable zen:build-kernel #f)
-(zen:define-variable zen:build-image #f)
-(zen:define-variable zen:build-library #f)
 
 
 ;;;
@@ -328,6 +311,27 @@
                       (display string output))
                     (%%cdr strings))))
     (get-output-string output)))
+
+
+;;;
+;;;; Compose
+;;;
+
+
+(zen:define-macro (%%compose-kernel s1 s2)
+  `(%%string->symbol (%%string-append (%%symbol->string ,s1) ":" (%%symbol->string ,s2))))
+
+
+(zen:define-macro (%%compose-reference s1 s2)
+  `(%%string->symbol (%%string-append (%%symbol->string ,s1) "#" (%%symbol->string ,s2))))
+
+
+(zen:define-macro (%%compose-member s1 s2)
+  `(%%string->symbol (%%string-append (%%symbol->string ,s1) ":" (%%symbol->string ,s2))))
+
+
+(zen:define-macro (%%compose-helper s1 s2)
+  `(%%string->symbol (%%string-append (%%symbol->string ,s1) "!" (%%symbol->string ,s2))))
 
 
 ;;;

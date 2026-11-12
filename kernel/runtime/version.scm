@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.version
+(block kernel/version
 
 
 ;;;
@@ -319,73 +319,7 @@
 
 
 (define (zen:convert-settings dir old)
-  (define (convert-initial)
-    (zen:convert-configurations dir
-      (lambda (configurations)
-        (map zen:convert-configuration-205000 configurations)))
-    205000)
-  
-  (define (convert-205000)
-    (zen:convert-configurations dir
-      (lambda (configurations)
-        (map zen:convert-configuration-205001 configurations)))
-    205001)
-  
-  (define (convert-205001)
-    205002)
-  
-  (define (convert-205002)
-    205003)
-  
-  (case old
-    ((#f) (convert-initial))
-    ((205000) (convert-205000))
-    ((205001) (convert-205001))
-    ((205002) (convert-205002))
-    (else #f)))
-
-
-(define (zen:convert-configurations dir converter)
-  (let ((configurations-file (string-append dir ".configurations")))
-    (define (read-configurations)
-      (call-with-input-file (list path: configurations-file eol-encoding: 'cr-lf)
-        (lambda (input)
-          (read-all input read))))
-    
-    (define (write-configurations configurations)
-      (call-with-output-file (list path: configurations-file #; eol-encoding: #; (zen:platform-eol-encoding (zen:guess-platform)))
-        (lambda (output)
-          (for-each (lambda (configuration)
-                      (write configuration output)
-                      (newline output))
-                    configurations))))
-    
-    (if (file-exists? configurations-file)
-        (write-configurations (converter (read-configurations))))))
-
-
-(define (zen:convert-configuration-205000 configuration)
-  (zen:convert-properties configuration
-    (lambda (property value)
-      (case property
-        ((interpret-kernel?:) (list kernel-interpret?: value))
-        ((source-access?:) (list))
-        (else (list property value))))))
-
-
-(define (zen:convert-configuration-205001 configuration)
-  (zen:convert-properties configuration
-    (lambda (property value)
-      (case property
-        ((destination:) (list destination: (if (string? value) (zen:string-replace value #\: #\/) value)))
-        (else (list property value))))))
-
-
-(define (zen:convert-properties plist converter)
-  (let iter ((scan plist) (result '()))
-    (if (null? scan)
-        result
-      (iter (cddr scan) (append result (converter (car scan) (cadr scan)))))))
+  #f)
 
 
 (define (zen:load-global/local filename)
@@ -450,7 +384,6 @@
           (debug-foreign? (%%unspecified))
           (track-memory? (%%unspecified))
           (mutable-bindings? (%%unspecified))
-          (kernel-interpret? (%%unspecified))
           (destination (%%unspecified))
           (features (%%unspecified))
           (properties (%%unspecified))
@@ -470,7 +403,6 @@
     debug-foreign?
     track-memory?
     mutable-bindings?
-    kernel-interpret?
     destination
     features
     properties
@@ -482,7 +414,7 @@
 ;;;
 
 
-(define (zen:save-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? kernel-interpret? destination features properties file system-platform)
+(define (zen:save-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties file system-platform)
   (call-with-output-file (list path: file eol-encoding: (zen:platform-eol-encoding system-platform))
     (lambda (output)
       (display "(configuration " output)
@@ -490,12 +422,12 @@
       (newline output)
       (newline output)
       (display "  " output)
-      (zen:print-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? kernel-interpret? destination features properties output)
+      (zen:print-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties output)
       (display ")" output)
       (newline output))))
 
 
-(define (zen:print-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? kernel-interpret? destination features properties output)
+(define (zen:print-configuration name system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties output)
   (define first?
     #t)
   
@@ -522,7 +454,6 @@
   (print-property debug-foreign?: debug-foreign?)
   (print-property track-memory?: track-memory?)
   (print-property mutable-bindings?: mutable-bindings?)
-  (print-property kernel-interpret?: kernel-interpret?)
   (print-property destination: destination)
   (print-property features: features)
   (print-property properties: properties)

@@ -6,7 +6,36 @@
 ;;;
 
 
-(block kernel.unit
+(block kernel/unit
+
+
+;;;
+;;;; Stack
+;;;
+
+
+;; tanzoo
+(define (zen:alloc-still-class size)
+  (##make-vector size))
+
+
+;;;
+;;;; Common
+;;;
+
+
+;; tanzoo
+(zen:define-variable zen:image-load-counter 0)
+(zen:define-variable zen:object-load-counter 0)
+(zen:define-variable zen:interpreted-load-counter 0)
+
+
+(define (zen:increment-image-load-counter)
+  (set! zen:image-load-counter (%%fx+ 1 zen:image-load-counter)))
+(define (zen:increment-object-load-counter)
+  (set! zen:object-load-counter (%%fx+ 1 zen:object-load-counter)))
+(define (zen:increment-interpreted-load-counter)
+  (set! zen:interpreted-load-counter (%%fx+ 1 zen:interpreted-load-counter)))
 
 
 ;;;
@@ -302,6 +331,8 @@
                (%%string-append (or (zen:build-repository) zen:kernel-install) "Libraries/lib")))
       (%%string-append (or (zen:build-repository) zen:kernel-install) "lib")))
   
+  ;; tanzoo
+  (if (%%null? zen:Repositories)
   (let ((build-dir (zen:dirname-normalize (build-directory))))
     (let ((build (zen:make-repository 'build build-dir binary?: #t)))
       (let ((source-specs (or (and zen:kernel-source-access? zen:kernel-source-repositories) '())))
@@ -313,7 +344,7 @@
                            source-specs)))
           (set! zen:Build-Repository build)
           (set! zen:Repositories (%%cons build source))
-          (for-each zen:setup-repository source))))))
+          (for-each zen:setup-repository source)))))))
 
 
 (define (zen:make-repository name directory #!key (binary? #f))
@@ -629,9 +660,9 @@
         (display "obj-uptodate? ") (display obj-uptodate?) (newline)
         (display "bin-uptodate? ") (display bin-uptodate?) (newline)
         (display "lib-uptodate? ") (display lib-uptodate?) (newline)
-        (if (and bin zen:manifest-valid?)
+        (if (and bin zen:manifest-references-valid?)
             (begin
-              (display "manifest-valid? ") (display (zen:manifest-valid? bin)) (newline)))
+              (display "manifest-valid? ") (display (zen:manifest-references-valid? bin)) (newline)))
         (display "loaded? ") (display loaded?) (newline)))))
 
 
@@ -663,24 +694,24 @@
 
 (define (zen:load-debuggee)
   (zen:load-debuggee-units)
-  (zen:load-unit 'zen.debuggee/setup)
-  (zen:load-unit 'zen.debuggee/update))
+  (zen:load-unit 'zen-debuggee/setup)
+  (zen:load-unit 'zen-debuggee/update))
 
 
 (define (zen:load-debuggee-units)
   (zen:load-unit 'zen)
-  (zen:load-unit 'zen.debuggee)
-  (zen:load-unit 'zen.debuggee/base)
-  (zen:load-unit 'zen.debuggee/stub)
-  (zen:load-unit 'zen.debuggee/zen)
-  (zen:load-unit 'zen.debuggee/zen/autoload)
-  (zen:load-unit 'zen.debuggee/zen/autoload-external)
-  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Frame)
-  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Process)
-  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Restart)
-  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Stop)
-  (zen:load-unit 'zen.debuggee/zen/Zen-Debuggee-Thread)
-  (zen:load-unit 'zen.debugger/stub))
+  (zen:load-unit 'zen-debuggee)
+  (zen:load-unit 'zen-debuggee/base)
+  (zen:load-unit 'zen-debuggee/stub)
+  (zen:load-unit 'zen-debuggee/zen)
+  (zen:load-unit 'zen-debuggee/zen/autoload)
+  (zen:load-unit 'zen-debuggee/zen/autoload-external)
+  (zen:load-unit 'zen-debuggee/zen/Zen-Debuggee-Frame)
+  (zen:load-unit 'zen-debuggee/zen/Zen-Debuggee-Process)
+  (zen:load-unit 'zen-debuggee/zen/Zen-Debuggee-Restart)
+  (zen:load-unit 'zen-debuggee/zen/Zen-Debuggee-Stop)
+  (zen:load-unit 'zen-debuggee/zen/Zen-Debuggee-Thread)
+  (zen:load-unit 'zen-debugger/stub))
 
 
 ;;;
@@ -1590,6 +1621,12 @@
 
 
 (define (zen:load-unit-src/bin unit-name #!key (force-source? #f))
+  ;; tanzoo
+  (if (##lookup-module unit-name ##registered-modules)
+      (zen:with-verbose (zen:load-verbose?) "loading kernel" (symbol->string unit-name)
+        (lambda ()
+          (parameterize ((zen:walk-for 'runtime))
+            (##load-module unit-name))))
   (let try-again ((first-try? #t))
     (zen:with-unit-resources unit-name #f
       (lambda (src obj bin load-proc obj-uptodate? bin-uptodate? lib-uptodate? manifest)
@@ -1638,7 +1675,7 @@
                        (begin
                          (zen:unit-not-found-hook unit-name)
                          (try-again #f))
-                     (zen:error "Unable to find unit: {s}" unit-name))))))))))
+                     (zen:error "Unable to find unit: {s}" unit-name)))))))))))
 
 
 (define (zen:unit-loadable? unit-name)
@@ -2177,5 +2214,4 @@
 
 (zen:register-reader-extension "zen"
   (lambda ()
-    ;; bazoo (zen:load-unit 'zen/dialect)
     zen:zen-readtable)))

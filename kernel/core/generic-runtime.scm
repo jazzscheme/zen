@@ -6,7 +6,7 @@
 ;;;
 
 
-(block core.generic-runtime
+(block core/generic-runtime
 
 
 ;;;

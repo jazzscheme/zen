@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.configuration
+(block kernel/configuration
 
 
 ;;;
@@ -38,7 +38,6 @@
    (debug-foreign?      getter: generate)
    (track-memory?       getter: generate)
    (mutable-bindings?   getter: generate)
-   (kernel-interpret?   getter: generate)
    (destination         getter: generate)
    (features            getter: generate)
    (properties          getter: generate)

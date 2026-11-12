@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.syntax
+(block kernel/syntax
 
 
 ;;;

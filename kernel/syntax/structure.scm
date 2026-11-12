@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.structure
+(block kernel/structure
 
 
 (define zen:structure-info

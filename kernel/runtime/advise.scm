@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.advise
+(block kernel/advise
 
 
 ;;;

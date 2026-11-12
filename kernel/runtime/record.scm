@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.record
+(block kernel/record
 
 
 ;; costly test for a low probability class of bugs
@@ -85,7 +85,7 @@
         (lambda (rec)
           (zen:with-uniqueness n
             (lambda (rnk)
-              (if zen:debug-out-of-bounds?
+              (if #f ;; tanzoo zen:debug-out-of-bounds?
                   `(cond ((%%not (%%record? ,rec))
                           (zen:not-record-error ,rec))
                          ((or (%%not (%%fixnum? ,rnk))
@@ -105,7 +105,7 @@
         (lambda (rec)
           (zen:with-uniqueness n
             (lambda (rnk)
-              (if zen:debug-out-of-bounds?
+              (if #f ;; tanzoo zen:debug-out-of-bounds?
                   `(cond ((%%not (%%record? ,rec))
                           (zen:not-record-error ,rec))
                          ((or (%%not (%%fixnum? ,rnk))

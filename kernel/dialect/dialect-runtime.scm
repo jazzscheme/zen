@@ -28,7 +28,7 @@
 ;;   things working
 
 
-(block dialect.dialect-runtime
+(block dialect/dialect-runtime
 
 
 ;; mega hack to test idea
@@ -6557,7 +6557,7 @@
     (let ((code (cadr src))
           (line (- (caddr src) 1))
           (col (- (cadddr src) 1)))
-      (##make-source (transform code) (##make-locat  "/Users/cartier/Devel/together/app/devel/zen/lib/zen.test/src/zen/test/_test.zen" (##make-filepos line col 0)))))
+      (##make-source (transform code) (##make-locat  "/Users/cartier/Devel/together/app/devel/zen/lib/zen-test/src/zen/test/_test.zen" (##make-filepos line col 0)))))
   
   (define (transform-list lst)
     (cons (transform (car lst))

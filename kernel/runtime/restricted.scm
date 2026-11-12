@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.restricted
+(block kernel/restricted
 
 
 ;;;
@@ -207,7 +207,7 @@
 
 (define (zen:filesystem-unrestrict)
   (define (under-debugger?)
-    (zen:global-ref 'zen.debuggee#controller-debugger))
+    (zen:global-ref 'zen-debuggee#controller-debugger))
   
   (if (and zen:filesystem-restrictable? zen:filesystem-restricted? (not (under-debugger?)))
       (begin

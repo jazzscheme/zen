@@ -6,7 +6,7 @@
 ;;;
 
 
-(block core.exception-runtime
+(block core/exception-runtime
 
 
 ;;;

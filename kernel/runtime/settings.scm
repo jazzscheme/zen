@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.settings
+(block kernel/settings
 
 
 ;;;

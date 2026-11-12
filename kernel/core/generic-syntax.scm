@@ -6,7 +6,7 @@
 ;;;
 
 
-(block core.generic-syntax
+(block core/generic-syntax
 
 
 ;;;

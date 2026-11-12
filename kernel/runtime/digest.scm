@@ -8,7 +8,7 @@
 
 ;;; Contains procedures to compute message digests.
 
-(block kernel.digest
+(block kernel/digest
 
 (##include "~~lib/gambit#.scm")
 

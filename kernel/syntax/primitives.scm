@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.primitives
+(block kernel/primitives
 
 
 (declare (not safe))

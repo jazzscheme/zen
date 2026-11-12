@@ -6,7 +6,7 @@
 ;;;
 
 
-(block dialect.dialect-syntax
+(block dialect/dialect-syntax
 
 
 ;;;

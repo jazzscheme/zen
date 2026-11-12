@@ -6,7 +6,7 @@
 ;;;
 
 
-(block scheme.scheme-backend
+(block dialect/scheme-backend
 
 
 ;;;

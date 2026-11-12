@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.internal
+(block kernel/internal
 
 
 (declare (not safe))

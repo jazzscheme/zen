@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.build
+(block kernel/build
 
 
 ;;;
@@ -26,7 +26,6 @@
 (zen:define-variable zen:hub-declaration-nodes-set!)
 (zen:define-variable zen:module-shape)
 (zen:define-variable zen:manifest-ignore?)
-(zen:define-variable zen:manifest-valid?)
 
 
 ;;;
@@ -150,7 +149,7 @@
             rebuild-architecture?)))))
 
 
-(define (zen:manifest-needs-rebuild?-impl manifest)
+(define (zen:manifest-needs-rebuild? manifest)
   (let ((name (%%get-manifest-name manifest))
         (version (zen:manifest-zen-version manifest)))
     (let ((rebuild? #f))
@@ -187,11 +186,56 @@
 
 
 ;;;
+;;;; Mu
+;;;
+
+
+(define (zen:build-mu configuration)
+  (let ((destination-directory "bin/"))
+    (let ((mu-dir (string-append destination-directory "build/mu/")))
+      (define (compile-unit path base)
+        (let ((src (%%string-append "kernel/" path base ".scm")))
+          (let ((standardized-path (zen:pathname-standardize (path-normalize src)))
+                (dst (string-append mu-dir base "." (zen:compiler-extension))))
+            (if (or (not (file-exists? dst))
+                    (> (zen:file-last-modification-seconds src)
+                       (zen:file-last-modification-seconds dst)))
+                (begin
+                  (zen:feedback "; compiling {a}..." (string-append path base))
+                  (compile-file-to-target standardized-path output: dst)
+                  (compile-file dst options: '(obj)))))))
+      
+      (zen:create-directories mu-dir)
+      (compile-unit "mu/" "mu")
+      (compile-unit "mu/" "build")
+      (compile-unit "mu/" "compile")
+      (zen:feedback "; creating link file...")
+      (let ((c-files `(,(string-append mu-dir "mu.c")
+                       ,(string-append mu-dir "build.c")
+                       ,(string-append mu-dir "compile.c")))
+            (link-file (string-append mu-dir "mu_.c")))
+        (link-incremental c-files output: link-file base: "~~lib/_gambitgsc" warnings?: #f)
+        (zen:feedback "; linking executable...")
+        (let ((obj-files `(,(string-append mu-dir "mu.o")
+                           ,(string-append mu-dir "build.o")
+                           ,(string-append mu-dir "compile.o"))))
+          (zen:gambitbuild
+            'exe
+            (zen:pathname-normalize destination-directory)
+            (append obj-files (list link-file))
+            "mu"
+            ""
+            ""
+            (string-append "-L" (path-strip-trailing-directory-separator (path-normalize "~~lib")) " -lgambitgsc")
+            '()))))))
+
+
+;;;
 ;;;; Kernel
 ;;;
 
 
-(define (zen:build-kernel-impl #!key (image #f))
+(define (zen:build-kernel #!key (image #f))
   (let ((configuration (zen:build-configuration))
         (image (or image 'executable)))
     (let ((name (zen:get-configuration-name configuration))
@@ -209,7 +253,6 @@
           (track-memory? (zen:get-configuration-track-memory? configuration))
           (mutable-bindings? (zen:get-configuration-mutable-bindings? configuration))
           (include-compiler? (not (eq? image 'library)))
-          (kernel-interpret? (zen:get-configuration-kernel-interpret? configuration))
           (destination (zen:get-configuration-destination configuration))
           (destination-directory (zen:configuration-directory configuration))
           (features (zen:get-configuration-features configuration))
@@ -229,7 +272,6 @@
                         track-memory?:         track-memory?
                         mutable-bindings?:     mutable-bindings?
                         include-compiler?:     include-compiler?
-                        kernel-interpret?:     kernel-interpret?
                         destination:           destination
                         destination-directory: destination-directory
                         features:              features
@@ -248,17 +290,17 @@
   '())
 
 
-(define (zen:get-changed-units-impl)
+(define (zen:get-changed-units)
   zen:*changed-units*)
 
-(define (zen:push-changed-units-impl unit)
+(define (zen:push-changed-units unit)
   (set! zen:*changed-units* (%%cons unit zen:*changed-units*)))
 
-(define (zen:reset-changed-units-impl)
+(define (zen:reset-changed-units)
   (set! zen:*changed-units* '()))
 
 
-(define (zen:build-image-impl product
+(define (zen:build-image product
           #!key
           (system zen:kernel-system)
           (platform zen:kernel-platform)
@@ -274,7 +316,6 @@
           (track-memory? zen:kernel-track-memory?)
           (mutable-bindings? zen:kernel-mutable-bindings?)
           (include-compiler? #f)
-          (kernel-interpret? #f)
           (source zen:kernel-source)
           (destination zen:kernel-destination)
           (destination-directory zen:kernel-install)
@@ -366,51 +407,83 @@
         (if feedback
             (apply feedback fmt-string rest)))
       
-      (define (compile-unit rebuild? name dir output)
-        (let ((src (string-append dir name ".scm"))
-              (dst (string-append output name "." (zen:compiler-extension)))
-              (digest (string-append output name "." zen:Digest-Extension))
-              (mnf (string-append output name "." zen:Manifest-Extension)))
-          (let ((hash-changed? (%%not (zen:manifest-uptodate? src (zen:load-updated-manifest name digest mnf src)))))
-            (if (or rebuild? hash-changed? (%%not (file-exists? dst)))
-                (let ((path (%%string-append dir name))
-                      (options `(,@(if debug-environments? '(debug-environments) '())
-                                 ,@(if debug-location? '(debug-location) '())
-                                 ,@(if debug-source? '(debug-source) '())
-                                 ,@(if zen:enable-track-scheme? '(track-scheme) '()))))
-                  ;; standardize path as it will be the path stored in debugging information
-                  (let ((standardized-path (zen:pathname-standardize (path-normalize path))))
-                    (zen:push-changed-units path)
-                    (feedback-message "; compiling {a}..." path)
-                    (if (not (zen:dry-run?))
-                        (begin
-                          (parameterize ((zen:walk-for 'compile))
-                            (compile-file-to-target standardized-path options: options output: dst))
-                          (if ios?
-                              (let ((custom-cc-options ios-custom-cc-options))
-                                (zen:call-process
-                                  (list
-                                    path: ios-custom-cc
-                                    arguments: `(,@custom-cc-options ,(%%string-append "-I" ios-gambit-include-dir) "-D___DYNAMIC" "-c" "-o" ,(string-append output name ".o") ,dst))))
-                            (let ((cc-options (case platform
-                                                ((mac) (case processor
-                                                         ((silicon) "-D___DYNAMIC -mmacosx-version-min=11")
-                                                         (else "-D___DYNAMIC -mmacosx-version-min=10.13")))
-                                                (else "-D___DYNAMIC"))))
-                              ;; reduce long compilation time for purely syntactic files or dialect-runtime
-                              (let ((cc-options (if (or (equal? name "primitives")
-                                                        (equal? name "unsafe")
-                                                        (equal? name "dialect-runtime"))
-                                                    (string-append "-O0 -U___SINGLE_HOST " cc-options)
-                                                  cc-options)))
-                                (compile-file dst options: (%%cons 'obj options) cc-options: cc-options))))
-                          (zen:update-manifest-compile-time name digest mnf src #f))))
-                  #t)
-              #f))))
+      (define (parse-module module-info proc)
+        (let ((module-name (%%car module-info))
+              (path (%%cadr module-info))
+              (base (%%car (%%cddr module-info))))
+          (proc module-name path base)))
+      
+      (define modules-list
+        '((zen-foundation          "zen-foundation/" "_")
+          (zen-scheme              "zen-scheme/"     "_")
+          (zen-scheme/kernel       "zen-scheme/"     "kernel")
+          (zen-scheme/core         "zen-scheme/"     "core")
+          (zen-scheme/runtime      "zen-scheme/"     "runtime")
+          (zen-scheme/syntax       "zen-scheme/"     "syntax")
+          (zen-scheme/syntax-rules "zen-scheme/"     "syntax-rules")
+          (zen-gambit              "zen-gambit/"     "_")
+          (zen                     "zen/"            "_")
+          (zen/core                "zen/"            "core")
+          (zen/literals            "zen/"            "literals")
+          (zen/dialect             "zen/dialect/"    "_dialect")
+          (zen/dialect/kernel      "zen/dialect/"    "kernel")
+          (zen/dialect/syntax      "zen/dialect/"    "syntax")
+          (zen/language/runtime    "zen/language/"   "runtime")
+          (zen/language/loop       "zen/language/"   "loop")))
+      
+      (define (compile-unit rebuild? name dir output #!optional (module-name #f))
+        (let ((base (zen:pathname-base name))
+              (ext (zen:pathname-extension name)))
+          (let ((src (string-append dir base "." (or ext "scm")))
+                (dst (string-append output base "." (zen:compiler-extension)))
+                (digest (string-append output base "." zen:Digest-Extension))
+                (mnf (string-append output base "." zen:Manifest-Extension)))
+            (let ((hash-changed? (%%not (zen:manifest-uptodate? src (zen:load-updated-manifest base digest mnf src)))))
+              (if (or rebuild? hash-changed? (%%not (file-exists? dst)))
+                  (let ((path (%%string-append dir base))
+                        (options ;; tanzoo
+                                 (if module-name
+                                     `((module-ref ,module-name))
+                                   `(,@(if debug-environments? '(debug-environments) '())
+                                     ,@(if debug-location? '(debug-location) '())
+                                     ,@(if debug-source? '(debug-source) '())
+                                     ,@(if zen:enable-track-scheme? '(track-scheme) '())))))
+                    ;; standardize path as it will be the path stored in debugging information
+                    (let ((standardized-path (zen:pathname-standardize (path-normalize path))))
+                      (zen:push-changed-units path)
+                      (feedback-message "; compiling {a}..." path)
+                      (if (not (zen:dry-run?))
+                          (begin
+                            (parameterize ((zen:walk-for 'compile))
+                              (compile-file-to-target standardized-path options: options output: dst))
+                            (if ios?
+                                (let ((custom-cc-options ios-custom-cc-options))
+                                  (zen:call-process
+                                    (list
+                                      path: ios-custom-cc
+                                      arguments: `(,@custom-cc-options ,(%%string-append "-I" ios-gambit-include-dir) "-D___DYNAMIC" "-c" "-o" ,(string-append output base ".o") ,dst))))
+                              (let ((cc-options (case platform
+                                                  ((mac) (case processor
+                                                           ((silicon) "-D___DYNAMIC -mmacosx-version-min=11")
+                                                           (else "-D___DYNAMIC -mmacosx-version-min=10.13")))
+                                                  (else "-D___DYNAMIC"))))
+                                ;; reduce long compilation time for purely syntactic files or dialect-runtime
+                                (let ((cc-options (cond ((or (equal? base "primitives")
+                                                             (equal? base "unsafe")
+                                                             (equal? base "dialect-runtime"))
+                                                         (string-append "-O0 -U___SINGLE_HOST " cc-options))
+                                                        (module-name
+                                                         (string-append "-U___SINGLE_HOST " cc-options))
+                                                        (else
+                                                         cc-options))))
+                                  (compile-file dst options: (%%cons 'obj options) cc-options: cc-options))))
+                            (zen:update-manifest-compile-time base digest mnf src #f))))
+                    #t)
+                #f)))))
       
       (define (with-version-file version-file proc)
-        (let ((rebuild? (zen:kernel/product-needs-rebuild? version-file))
-              (rebuild-architecture? (zen:kernel/product-architecture-needs-rebuild? version-file))
+        (let ((rebuild? #f) ;; tanzoo (zen:kernel/product-needs-rebuild? version-file))
+              (rebuild-architecture? #f) ;; tanzoo (zen:kernel/product-architecture-needs-rebuild? version-file))
               (was-touched? #f))
           (define (touch)
             (if (file-exists? version-file)
@@ -447,8 +520,18 @@
       
       (define (compile-kernel rebuild? rebuild-architecture? touch touched?)
         (let ((architecture? (generate-architecture rebuild? rebuild-architecture?)))
+          (define (compile-gambit-lib name)
+            (if (compile-unit rebuild?
+                              name
+                              (path-expand (string-append "~~lib/" name "/"))
+                              (kernel-file "gambit/"))
+                (touch)))
+          
           (define (compile-kernel-file name)
-            (if (compile-unit rebuild? name kernel-dir kernel-dir)
+            (if (compile-unit rebuild?
+                              name
+                              kernel-dir
+                              kernel-dir)
                 (touch)))
           
           (define (compile-source-file path name)
@@ -458,35 +541,24 @@
                               (kernel-file path))
                 (touch)))
           
-          (if kernel?
-              (begin
-                ;; load architecture
-                (load (kernel-file "_architecture"))
-                
-                ;; reload syntax to account for architecture
-                ;; no architecture-dependent syntax in header so do not load
-                ;; it as it is very time consuming because of gambit's header
-                ;; (load (source-file "kernel/syntax/header"))
-                (load (source-file "kernel/syntax/macro"))
-                (load (source-file "kernel/syntax/unsafe"))
-                (load (source-file "kernel/syntax/verbose"))
-                (load (source-file "kernel/syntax/declares"))
-                (load (source-file "kernel/syntax/features"))
-                (load (source-file "kernel/syntax/block"))
-                (load (source-file "kernel/syntax/library"))
-                (load (source-file "kernel/syntax/foreign"))
-                (load (source-file "kernel/syntax/expansion"))
-                (load (source-file "kernel/syntax/primitives"))
-                (load (source-file "kernel/syntax/internal"))
-                (load (source-file "kernel/syntax/structure"))
-                (load (source-file "kernel/syntax/syntax"))
-                (load (source-file "kernel/syntax/runtime"))
-                (load (source-file "kernel/runtime/base"))
-                (load (source-file "kernel/runtime/record"))
-                (load (source-file "kernel/syntax/repository"))))
+          (define (compile-module module-info)
+            (parse-module module-info
+              (lambda (module-name path base)
+                (if (parameterize ((current-readtable zen:zen-readtable)
+                                   (zen:walk-for 'compile)
+                                   (zen:generate-symbol-for "^")
+                                   (zen:generate-symbol-context module-name))
+                      (compile-unit rebuild?
+                                    (%%string-append base ".zen")
+                                    (%%string-append (source-file "lib/") path)
+                                    (kernel-file path)
+                                    module-name))
+                    (touch)))))
           
           (if architecture?
               (compile-kernel-file "_architecture"))
+          
+          (compile-gambit-lib "_irregex")
           
           (compile-source-file "syntax/" "header")
           (compile-source-file "syntax/" "macro")
@@ -540,12 +612,14 @@
           (compile-source-file "dialect/" "dialect-runtime")
           (compile-source-file "dialect/" "dialect-expression")
           (compile-source-file "dialect/" "dialect-development")
-          (compile-source-file "foundation/" "foundation-runtime")
-          (compile-source-file "scheme/" "scheme-backend")
-          (compile-source-file "scheme/" "scheme-dialect")
-          (compile-source-file "zen/" "zen-runtime")
-          (compile-source-file "zen/" "zen-backend")
-          (compile-source-file "zen/" "zen-core")))
+          (compile-source-file "dialect/" "foundation-runtime")
+          (compile-source-file "dialect/" "scheme-backend")
+          (compile-source-file "dialect/" "scheme-dialect")
+          (compile-source-file "dialect/" "zen-runtime")
+          (compile-source-file "dialect/" "zen-backend")
+          (compile-source-file "dialect/" "zen-core")
+          
+          (for-each compile-module modules-list)))
       
       (define (generate-architecture rebuild? rebuild-architecture?)
         (let ((file (kernel-file "_architecture.scm")))
@@ -627,7 +701,8 @@
                     (%%not (file-exists? link-file))
                     (or (%%not kernel-seconds) (< (zen:file-last-modification-seconds link-file) kernel-seconds))
                     (touched?))
-                (let ((base-files `(,(kernel-file "_architecture")
+                (let ((gambit-files `(,(kernel-file "gambit/_irregex")))
+                      (base-files `(,(kernel-file "_architecture")
                                     ,(product-file (product-filename))
                                     ,(kernel-file "syntax/header")
                                     ,(kernel-file "syntax/macro")
@@ -683,12 +758,17 @@
                                     ,(kernel-file "dialect/dialect-runtime")
                                     ,(kernel-file "dialect/dialect-expression")
                                     ,(kernel-file "dialect/dialect-development")
-                                    ,(kernel-file "foundation/foundation-runtime")
-                                    ,(kernel-file "scheme/scheme-backend")
-                                    ,(kernel-file "scheme/scheme-dialect")
-                                    ,(kernel-file "zen/zen-runtime")
-                                    ,(kernel-file "zen/zen-backend")
-                                    ,(kernel-file "zen/zen-core"))))
+                                    ,(kernel-file "dialect/foundation-runtime")
+                                    ,(kernel-file "dialect/scheme-backend")
+                                    ,(kernel-file "dialect/scheme-dialect")
+                                    ,(kernel-file "dialect/zen-runtime")
+                                    ,(kernel-file "dialect/zen-backend")
+                                    ,(kernel-file "dialect/zen-core")))
+                      (module-files (map (lambda (module-info)
+                                           (parse-module module-info
+                                             (lambda (module-name path base)
+                                               (kernel-file (%%string-append path base)))))
+                                          modules-list)))
                   (let ((link-info (product-file (%%string-append image-name ".link"))))
                     (call-with-output-file (list path: link-info eol-encoding: (zen:platform-eol-encoding zen:kernel-platform))
                       (lambda (output)
@@ -696,11 +776,11 @@
                                     (write file output)
                                     (newline output))
                                   base-files))))
-                  (let ((files (append base-files (list (product-file (main-filename))))))
+                  (let ((files (append gambit-files base-files (map (lambda (path) (%%cons path '((preload . #f)))) module-files) (list (product-file (main-filename))))))
                     (feedback-message "; creating link file...")
                     (if library-image?
                         (link-flat files output: link-file warnings?: #f)
-                      (link-incremental files output: link-file base: (string-append "~~lib/_" gambit-library)))))))
+                      (link-incremental files output: link-file linker-name: "_zen" base: (string-append "~~lib/_" gambit-library)))))))
           
           ;;;
           ;;;; Link Image
@@ -764,7 +844,7 @@
                 (call-with-output-file (list path: file eol-encoding: 'lf)
                   (lambda (output)
                     (cond (library-image?
-                           (display "(zen:verbose-kernel 'kernel.main)" output)
+                           (display "(zen:verbose-kernel 'kernel/main)" output)
                            (newline output)
                            (newline output)
                            (display "(zen:library-main)" output)
@@ -781,7 +861,7 @@
                                  (display maximum-heap output)))
                            (newline output)
                            (newline output)
-                           (display "(zen:verbose-kernel 'kernel.main)" output)
+                           (display "(zen:verbose-kernel 'kernel/main)" output)
                            (newline output)
                            (newline output)
                            (display "(define (zen:main)" output)
@@ -901,6 +981,7 @@
       (define (link-image)
         (let ((kernel-dir (zen:pathname-normalize (zen:pathname-dir (image-file))))
               (kernel-name (zen:pathname-name (image-file)))
+              (gambit-files `(,(kernel-file "gambit/_irregex.o")))
               (base-files `(,(kernel-file "_architecture.o")
                             ,(product-file (string-append (product-filename) ".o"))
                             ,(kernel-file "syntax/header.o")
@@ -957,15 +1038,20 @@
                             ,(kernel-file "dialect/dialect-runtime.o")
                             ,(kernel-file "dialect/dialect-expression.o")
                             ,(kernel-file "dialect/dialect-development.o")
-                            ,(kernel-file "foundation/foundation-runtime.o")
-                            ,(kernel-file "scheme/scheme-backend.o")
-                            ,(kernel-file "scheme/scheme-dialect.o")
-                            ,(kernel-file "zen/zen-runtime.o")
-                            ,(kernel-file "zen/zen-backend.o")
-                            ,(kernel-file "zen/zen-core.o")))
+                            ,(kernel-file "dialect/foundation-runtime.o")
+                            ,(kernel-file "dialect/scheme-backend.o")
+                            ,(kernel-file "dialect/scheme-dialect.o")
+                            ,(kernel-file "dialect/zen-runtime.o")
+                            ,(kernel-file "dialect/zen-backend.o")
+                            ,(kernel-file "dialect/zen-core.o")))
+              (module-files (map (lambda (module-info)
+                                   (parse-module module-info
+                                     (lambda (module-name path base)
+                                       (kernel-file (%%string-append path base ".o")))))
+                                 modules-list))
               (main-file (product-file (string-append (main-filename) ".o")))
               (link-file (link-file)))
-          (let ((c-files (append base-files (%%list main-file link-file))))
+          (let ((obj-files (append gambit-files base-files module-files (%%list main-file link-file))))
             (feedback-message "; linking {a}..." (if library-image? "library" "executable"))
             (zen:create-directories kernel-dir)
             ;; static kernel
@@ -981,11 +1067,11 @@
                   (zen:invoke-process
                     (list
                       path: ios-custom-cc
-                      arguments: `(,@custom-cc-options ,@link-options ,(%%string-append "-I" ios-gambit-include-dir) ,(%%string-append "-L" ios-gambit-lib-dir) ,@c-files "-o" ,(string-append kernel-dir "/" kernel-name)))))
+                      arguments: `(,@custom-cc-options ,@link-options ,(%%string-append "-I" ios-gambit-include-dir) ,(%%string-append "-L" ios-gambit-lib-dir) ,@obj-files "-o" ,(string-append kernel-dir "/" kernel-name)))))
               (zen:gambitbuild
                 'exe
                 (zen:pathname-normalize build-dir)
-                c-files
+                obj-files
                 (string-append kernel-dir "/" kernel-name)
                 (string-append "-I" (zen:quote-pathname (path-strip-trailing-directory-separator (path-normalize "~~include")) platform))
                 ""
@@ -1052,7 +1138,7 @@
           (if (%%not (file-exists? file))
               (begin
                 (zen:feedback "; generating {a}..." file)
-                (zen:save-configuration #f system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? kernel-interpret? destination features properties file zen:kernel-platform)))))
+                (zen:save-configuration #f system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties file zen:kernel-platform)))))
       
       ;;;
       ;;;; Kernel Interpret
@@ -1064,77 +1150,6 @@
               (zen:print-expression-variable variable `(string-append install-dir ,rel-dir) output)
             (zen:print-variable variable (zen:pathname-standardize (path-normalize rel-dir)) output))))
       
-      (define (generate-kernel-interpret)
-        (let ((file (dest-file "zen-interpret")))
-          (if (%%not (file-exists? file))
-              (begin
-                (zen:feedback "; generating {a}..." file)
-                (call-with-output-file (list path: file eol-encoding: (zen:platform-eol-encoding zen:kernel-platform))
-                  (lambda (output)
-                    (print "#!/bin/sh" output)
-                    (newline output)
-                    (print "REL=$(dirname \"$0\")" output)
-                    (newline output)
-                    (receive (gambit-dir relative?) (zen:maybe-relativise-directory destination-directory "./" gambit-dir)
-                      (let ((relative-prefix (if relative? "$REL/" "")))
-                        (print (string-append "GAM=" relative-prefix gambit-dir) output)
-                        (print (string-append "GSC=" relative-prefix gambit-dir "bin/gsc") output)))
-                    (print "SCM=$REL/zen-interpret.scm" output)
-                    (newline output)
-                    (print "exec \"$GSC\" -:dar,=\"$GAM\" -i \"$SCM\" \"$@\"" output))))))
-        (let ((file (dest-file "zen-interpret.scm")))
-          (if (%%not (file-exists? file))
-              (begin
-                (zen:feedback "; generating {a}..." file)
-                (call-with-output-file (list path: file eol-encoding: (zen:platform-eol-encoding zen:kernel-platform))
-                  (lambda (output)
-                    (print "#!gsc -:dar" output)
-                    (newline output)
-                    (newline output)
-                    (print "(define install-dir" output)
-                    (print "  (path-directory (path-normalize (car (command-line)))))" output)
-                    (newline output)
-                    (newline output)
-                    (zen:print-architecture #t system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties output)
-                    (newline output)
-                    (zen:print-variable 'zen:kernel-interpreted? #t output)
-                    (newline output)
-                    (zen:print-variable 'zen:product #f output)
-                    (newline output)
-                    (zen:print-variable 'zen:image (or image 'executable) output)
-                    (newline output)
-                    (zen:print-expression-variable 'zen:built 'install-dir output)
-                    (newline output)
-                    (zen:print-variable 'zen:bundle-depth (and bundle (eq? windowing 'cocoa) (not library-image?) 3) output)
-                    (newline output)
-                    (print-absolute/relative-path-variable 'zen:gambit-dir gambit-dir output)
-                    (newline output)
-                    (zen:print-variable 'zen:source-built (zen:pathname-standardize (path-normalize source)) output)
-                    (newline output)
-                    (print-absolute/relative-path-variable 'zen:source source output)
-                    (newline output)
-                    (zen:print-variable 'zen:binary-repositories (zen:determine-binary-repositories destination-directory) output)
-                    (newline output)
-                    (zen:print-variable 'zen:source-repositories (zen:determine-source-repositories destination-directory) output)
-                    (newline output)
-                    (zen:print-variable 'zen:source-access? (zen:build-source-access?) output)
-                    (newline output)
-                    (zen:print-variable 'zen:zenini-access? (zen:build-zenini-access?) output)
-                    (newline output)
-                    (zen:print-variable 'zen:windows-homedir (zen:build-windows-homedir) output)
-                    (newline output)
-                    (zen:print-variable 'zen:single-objects? (zen:build-single-objects?) output)
-                    (newline output)
-                    (zen:print-variable 'zen:zen-updates (map zen:record->vector (zen:get-zen-updates)) output)
-                    (newline output)
-                    (newline output)
-                    (display "(load (string-append zen:source \"kernel/boot\"))" output)
-                    (newline output)
-                    (display "(zen:load-kernel #t)" output)
-                    (newline output)
-                    (display "(zen:executable-main)" output)
-                    (newline output)))))))
-      
       (zen:invoke-build-setup platform safety optimize? source destination properties)
       
       (zen:create-directories product-dir feedback: feedback)
@@ -1145,10 +1160,7 @@
           (generate-configuration))
       
       (build-kernel)
-      (build-product)
-      
-      (if kernel-interpret?
-          (generate-kernel-interpret)))))
+      (build-product))))
 
 
 ;;;
@@ -1292,7 +1304,7 @@
 ;;;
 
 
-(define (zen:build-library-impl product-name descriptor
+(define (zen:build-library product-name descriptor
           #!key
           (options '())
           (platform zen:kernel-platform)
@@ -1485,9 +1497,7 @@
               (build-library)))))))
 
 
-(define (zen:print-architecture for-kernel-interpret? system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties output)
-  (zen:print-variable 'zen:kernel-interpreted? #f output)
-  (newline output)
+(define (zen:print-architecture system platform compiler processor windowing safety optimize? debug-environments? debug-location? debug-source? debug-foreign? track-memory? mutable-bindings? destination features properties output)
   (zen:print-variable 'zen:kernel-system system output)
   (newline output)
   (zen:print-variable 'zen:kernel-platform platform output)
@@ -1543,18 +1553,4 @@
   (display "  " output)
   (write expression output)
   (display ")" output)
-  (newline output))
-
-
-;;;
-;;;; Override
-;;;
-
-
-(zen:define-variable-override zen:manifest-needs-rebuild? zen:manifest-needs-rebuild?-impl)
-(zen:define-variable-override zen:get-changed-units zen:get-changed-units-impl)
-(zen:define-variable-override zen:push-changed-units zen:push-changed-units-impl)
-(zen:define-variable-override zen:reset-changed-units zen:reset-changed-units-impl)
-(zen:define-variable-override zen:build-kernel zen:build-kernel-impl)
-(zen:define-variable-override zen:build-image zen:build-image-impl)
-(zen:define-variable-override zen:build-library zen:build-library-impl))
+  (newline output)))

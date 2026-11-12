@@ -150,9 +150,6 @@
 (zen:define-option zen:default-mutable-bindings?
   #f)
 
-(zen:define-option zen:default-kernel-interpret?
-  #f)
-
 (zen:define-option zen:default-destination
   #f)
 
@@ -188,7 +185,6 @@
           (debug-foreign? (zen:unspecified-option))
           (track-memory? (zen:unspecified-option))
           (mutable-bindings? (zen:unspecified-option))
-          (kernel-interpret? (zen:unspecified-option))
           (destination (zen:unspecified-option))
           (features (zen:unspecified-option))
           (properties (zen:unspecified-option))
@@ -208,7 +204,6 @@
     debug-foreign?
     track-memory?
     mutable-bindings?
-    kernel-interpret?
     destination
     features
     properties
@@ -232,7 +227,6 @@
           (debug-foreign? (zen:unspecified-option))
           (track-memory? (zen:unspecified-option))
           (mutable-bindings? (zen:unspecified-option))
-          (kernel-interpret? (zen:unspecified-option))
           (destination (zen:unspecified-option))
           (features (zen:unspecified-option))
           (properties (zen:unspecified-option))
@@ -251,7 +245,6 @@
          (debug-foreign? (zen:validate-debug-foreign? (zen:require-debug-foreign? debug-foreign? template)))
          (track-memory? (zen:validate-track-memory? (zen:require-track-memory? track-memory? template)))
          (mutable-bindings? (zen:validate-mutable-bindings? (zen:require-mutable-bindings? mutable-bindings? template)))
-         (kernel-interpret? (zen:validate-kernel-interpret? (zen:require-kernel-interpret? kernel-interpret? template)))
          (destination (zen:validate-destination (zen:require-destination destination template)))
          (features (zen:validate-features (zen:require-features features template)))
          (properties (zen:validate-properties (zen:require-properties properties template))))
@@ -270,7 +263,6 @@
       debug-foreign?
       track-memory?
       mutable-bindings?
-      kernel-interpret?
       destination
       features
       properties
@@ -435,7 +427,6 @@
       (zen:get-configuration-debug-foreign? configuration)
       (zen:get-configuration-track-memory? configuration)
       (zen:get-configuration-mutable-bindings? configuration)
-      (zen:get-configuration-kernel-interpret? configuration)
       (zen:get-configuration-destination configuration)
       (zen:get-configuration-features configuration)
       (zen:get-configuration-properties configuration)
@@ -458,7 +449,6 @@
       (zen:get-configuration-debug-foreign? configuration)
       (zen:get-configuration-track-memory? configuration)
       (zen:get-configuration-mutable-bindings? configuration)
-      (zen:get-configuration-kernel-interpret? configuration)
       (zen:get-configuration-destination configuration)
       (zen:get-configuration-features configuration)
       (zen:get-configuration-properties configuration)
@@ -496,7 +486,6 @@
         (debug-foreign? (zen:get-configuration-debug-foreign? configuration))
         (track-memory? (zen:get-configuration-track-memory? configuration))
         (mutable-bindings? (zen:get-configuration-mutable-bindings? configuration))
-        (kernel-interpret? (zen:get-configuration-kernel-interpret? configuration))
         (destination (zen:get-configuration-destination configuration))
         (features (zen:get-configuration-features configuration))
         (properties (zen:get-configuration-properties configuration)))
@@ -514,7 +503,6 @@
     (zen:feedback "  debug-foreign?: {s}" debug-foreign?)
     (zen:feedback "  track-memory?: {s}" track-memory?)
     (zen:feedback "  mutable-bindings?: {s}" mutable-bindings?)
-    (zen:feedback "  kernel-interpret?: {s}" kernel-interpret?)
     (zen:feedback "  destination: {s}" destination)
     (zen:feedback "  features: {s}" features)
     (zen:feedback "  properties: {s}" properties)))
@@ -542,7 +530,6 @@
           (debug-foreign? (zen:unspecified-option))
           (track-memory? (zen:unspecified-option))
           (mutable-bindings? (zen:unspecified-option))
-          (kernel-interpret? (zen:unspecified-option))
           (destination (zen:unspecified-option))
           (features (zen:unspecified-option))
           (properties (zen:unspecified-option)))
@@ -563,7 +550,6 @@
             debug-foreign?: debug-foreign?
             track-memory?: track-memory?
             mutable-bindings?: mutable-bindings?
-            kernel-interpret?: kernel-interpret?
             destination: destination
             features: features
             properties: properties)))
@@ -888,26 +874,6 @@
 
 
 ;;;
-;;;; Kernel-Interpret
-;;;
-
-
-(define zen:valid-kernel-interpret
-  '(#f
-    #t))
-
-
-(define (zen:require-kernel-interpret? kernel-interpret template)
-  (zen:or-option kernel-interpret (zen:get-configuration-kernel-interpret? template) (zen:default-kernel-interpret?)))
-
-
-(define (zen:validate-kernel-interpret? kernel-interpret)
-  (if (memq kernel-interpret zen:valid-kernel-interpret)
-      kernel-interpret
-    (zen:error "Invalid kernel-interpret?: {s}" kernel-interpret)))
-
-
-;;;
 ;;;; Destination
 ;;;
 
@@ -1029,7 +995,8 @@
       ((cleanproducts) (zen:make-cleanproducts configuration))
       ((cleanobject) (zen:make-cleanobject configuration))
       ((cleanlibrary) (zen:make-cleanlibrary configuration))
-      ((kernel) (zen:make-kernel configuration image local?))
+      ((mu) (zen:make-mu configuration image local?))
+      ((zen) (zen:make-zen configuration image local?))
       ((install) (zen:make-install configuration))
       (else (zen:make-product target configuration arguments))))
   
@@ -1344,11 +1311,21 @@
 
 
 ;;;
-;;;; Kernel
+;;;; Mu
 ;;;
 
 
-(define (zen:make-kernel configuration image local?)
+(define (zen:make-mu configuration image local?)
+  (zen:feedback "make mu")
+  (zen:build-mu configuration))
+
+
+;;;
+;;;; Zen
+;;;
+
+
+(define (zen:make-zen configuration image local?)
   (define (build-kernel configuration image)
     (define (build configuration)
       (let ((configuration (zen:invoke-build-configure configuration)))
@@ -1366,8 +1343,7 @@
               (debug-foreign? (zen:get-configuration-debug-foreign? configuration))
               (track-memory? (zen:get-configuration-track-memory? configuration))
               (mutable-bindings? (zen:get-configuration-mutable-bindings? configuration))
-              (include-compiler? (not (eq? image 'library)))
-              (kernel-interpret? (zen:get-configuration-kernel-interpret? configuration))
+              (include-compiler? #f)
               (source zen:source)
               (destination (zen:get-configuration-destination configuration))
               (destination-directory (zen:configuration-directory configuration))
@@ -1388,7 +1364,6 @@
                             track-memory?:         track-memory?
                             mutable-bindings?:     mutable-bindings?
                             include-compiler?:     include-compiler?
-                            kernel-interpret?:     kernel-interpret?
                             source:                source
                             destination:           destination
                             destination-directory: destination-directory
@@ -1417,12 +1392,11 @@
           (compare-parameter debug-foreign:       zen:get-configuration-debug-foreign?)
           (compare-parameter track-memory:        zen:get-configuration-track-memory?)
           (compare-parameter mutable-bindings:    zen:get-configuration-mutable-bindings?)
-          (compare-parameter kernel-interpret?:   zen:get-configuration-kernel-interpret?)
           (compare-parameter destination:         zen:get-configuration-destination)
           (compare-parameter features:            zen:get-configuration-features)
           (compare-parameter properties:          zen:get-configuration-properties)))
     
-    (zen:feedback "make kernel")
+    (zen:feedback "make zen")
     (let ((configuration (or configuration (zen:require-default-configuration))))
       (let ((configuration-file (zen:configuration-file configuration)))
         (if (file-exists? configuration-file)
@@ -1462,7 +1436,7 @@
 
 
 (define (zen:make-product product configuration arguments)
-  (zen:make-kernel configuration #f #f)
+  (zen:make-zen configuration #f #f)
   (= 0 (zen:invoke-process
          (list
            path: (string-append (zen:configuration-directory configuration) "zen")
@@ -1761,7 +1735,7 @@
   
   (define (help-command arguments output)
     (zen:print "Commands:" output)
-    (zen:print "  configure [name:] [system:] [platform:] [compiler:] [processor:] [windowing:] [safety:] [optimize?:] [debug-environments?:] [debug-location?:] [debug-source?:] [debug-foreign?:] [track-memory?:] [mutable-bindings?:] [kernel-interpret?:] [destination:] [features:] [properties:]" output)
+    (zen:print "  configure [name:] [system:] [platform:] [compiler:] [processor:] [windowing:] [safety:] [optimize?:] [debug-environments?:] [debug-location?:] [debug-source?:] [debug-foreign?:] [track-memory?:] [mutable-bindings?:] [destination:] [features:] [properties:]" output)
     (zen:print "  make [target | clean | cleankernel | cleanproducts | cleanobject | cleanlibrary]@[configuration]:[image]" output)
     (zen:print "  download [target]" output)
     (zen:print "  install [target]" output)
@@ -1881,7 +1855,7 @@
               ((equal? action "configure")
                (let ()
                  (define (configure template arguments)
-                   (zen:split-command-line arguments '() '("name" "system" "platform" "compiler" "processor" "windowing" "safety" "optimize" "debug-environments" "debug-location" "debug-source" "debug-foreign" "track-memory" "mutable-bindings" "kernel-interpret" "destination" "features" "properties") missing-argument-for-option
+                   (zen:split-command-line arguments '() '("name" "system" "platform" "compiler" "processor" "windowing" "safety" "optimize" "debug-environments" "debug-location" "debug-source" "debug-foreign" "track-memory" "mutable-bindings" "destination" "features" "properties") missing-argument-for-option
                      (lambda (commands options remaining)
                        (if (null? remaining)
                            (let ((name (symbol-option "name" options))
@@ -1898,11 +1872,10 @@
                                  (debug-foreign (boolean-option "debug-foreign" options))
                                  (track-memory (boolean-option "track-memory" options))
                                  (mutable-bindings (boolean-option "mutable-bindings" options))
-                                 (kernel-interpret (boolean-option "kernel-interpret" options))
                                  (destination (string-option "destination" options))
                                  (features (list-option "features" options))
                                  (properties (list-option "properties" options)))
-                             (zen:configure template name: name system: system platform: platform compiler: compiler processor: processor windowing: windowing safety: safety optimize?: optimize debug-environments?: debug-environments debug-location?: debug-location debug-source?: debug-source debug-foreign?: debug-foreign track-memory?: track-memory mutable-bindings?: mutable-bindings kernel-interpret?: kernel-interpret destination: destination features: features properties: properties)
+                             (zen:configure template name: name system: system platform: platform compiler: compiler processor: processor windowing: windowing safety: safety optimize?: optimize debug-environments?: debug-environments debug-location?: debug-location debug-source?: debug-source debug-foreign?: debug-foreign track-memory?: track-memory mutable-bindings?: mutable-bindings destination: destination features: features properties: properties)
                              (exit))
                          (unknown-option (car remaining))))))
                  
@@ -1934,7 +1907,7 @@
               ((or (equal? action "help") (equal? action "?"))
                (let ((console (console-port)))
                  (zen:print "Usage:" console)
-                 (zen:print "  mu configure [-name] [-system] [-platform] [-compiler] [-processor] [-windowing] [-safety] [-optimize] [-debug-environments] [-debug-location] [-debug-source] [-kernel-interpret] [-destination] [-features] [-properties]" console)
+                 (zen:print "  mu configure [-name] [-system] [-platform] [-compiler] [-processor] [-windowing] [-safety] [-optimize] [-debug-environments] [-debug-location] [-debug-source] [-destination] [-features] [-properties]" console)
                  (zen:print "  mu make [target | clean | cleankernel | cleanproducts | cleanobject | cleanlibrary]@[configuration]:[image]" console)
                  (zen:print "  mu download" console)
                  (zen:print "  mu install" console)
@@ -2015,8 +1988,15 @@
 ;;;
 
 
-(load (string-append zen:source "kernel/boot"))
-(zen:load-kernel #f)
+(zen:load-source "kernel/boot")
+;; tanzoo super quicky poc
+(let ((arg (last (command-args))))
+  (let ((config (if (and (>= (string-length arg) 5)
+                         (equal? (substring arg 0 5) "@core"))
+                    "core"
+                  "stable")))
+    (zen:load-kernel config)))
+(zen:prepare-repositories)
 
 
 ;;;
@@ -2040,7 +2020,6 @@
     debug-foreign?: (zen:unspecified-option)
     track-memory?: (zen:unspecified-option)
     mutable-bindings?: (zen:unspecified-option)
-    kernel-interpret?: (zen:unspecified-option)
     destination: (zen:unspecified-option)
     features: (zen:unspecified-option)
     properties: (zen:unspecified-option)))
@@ -2061,7 +2040,6 @@
     debug-foreign?: #f
     track-memory?: (zen:unspecified-option)
     mutable-bindings?: (zen:unspecified-option)
-    kernel-interpret?: #t
     destination: "build/core"
     features: (zen:unspecified-option)
     properties: (zen:unspecified-option)))
@@ -2082,7 +2060,6 @@
     debug-foreign?: #f
     track-memory?: (zen:unspecified-option)
     mutable-bindings?: (zen:unspecified-option)
-    kernel-interpret?: #t
     destination: "build/debug"
     features: (zen:unspecified-option)
     properties: (zen:unspecified-option)))
@@ -2103,7 +2080,6 @@
     debug-foreign?: #f
     track-memory?: (zen:unspecified-option)
     mutable-bindings?: (zen:unspecified-option)
-    kernel-interpret?: #t
     destination: "build/develop"
     features: (zen:unspecified-option)
     properties: (zen:unspecified-option)))
@@ -2124,7 +2100,6 @@
     debug-foreign?: #f
     track-memory?: (zen:unspecified-option)
     mutable-bindings?: (zen:unspecified-option)
-    kernel-interpret?: #t
     destination: "build/release"
     features: (zen:unspecified-option)
     properties: (zen:unspecified-option)))
@@ -2145,7 +2120,6 @@
     debug-foreign?: #f
     track-memory?: (zen:unspecified-option)
     mutable-bindings?: (zen:unspecified-option)
-    kernel-interpret?: #f
     destination: "build/sealed"
     features: (zen:unspecified-option)
     properties: (zen:unspecified-option)))

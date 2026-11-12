@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.foreign
+(block kernel/foreign
 
 
 ;; quicky duplicated code

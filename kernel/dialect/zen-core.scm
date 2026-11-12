@@ -6,7 +6,7 @@
 ;;;
 
 
-(block zen.zen-core
+(block dialect/zen-core
 
 
 ;;;
@@ -101,23 +101,23 @@
 
 ;; run the message loop
 (define (run-loop)
-  (let ((get-process (zen:global-ref 'zen.process:current-process))
-        (run-loop (zen:global-ref 'zen.process.Process:Process:run-loop)))
+  (let ((get-process (zen:global-ref 'zen-process:current-process))
+        (run-loop (zen:global-ref 'zen-process.Process:Process:run-loop)))
     (run-loop (get-process))))
 
 
 ;; resume the message loop
 (define (resume)
-  (let ((get-process (zen:global-ref 'zen.process:current-process))
-        (invoke-resume-loop (zen:global-ref 'zen.process.Process:Process:invoke-resume-loop)))
+  (let ((get-process (zen:global-ref 'zen-process:current-process))
+        (invoke-resume-loop (zen:global-ref 'zen-process.Process:Process:invoke-resume-loop)))
     (invoke-resume-loop (get-process))))
 
 
 ;; start a scheme repl
 (define (start-scheme-repl #!key (select? #t))
   (zen:load-unit 'zen)
-  (zen:load-unit 'zen.debuggee)
-  ((zen:module-ref 'zen.debuggee 'set-default-context) #f)
+  (zen:load-unit 'zen-debuggee)
+  ((zen:module-ref 'zen-debuggee 'set-default-context) #f)
   ((zen:module-ref 'zen 'start-repl) readtable: zen:scheme-readtable select?: select?))
 
 
@@ -693,8 +693,8 @@
 
 
 (define (zen:get-console-port)
-  (if (zen:global-bound? 'zen.language.runtime:current-console-port)
-      ((zen:global-ref 'zen.language.runtime:current-console-port))
+  (if (zen:global-bound? 'zen/language/runtime:current-console-port)
+      ((zen:global-ref 'zen/language/runtime:current-console-port))
     #f))
 
 

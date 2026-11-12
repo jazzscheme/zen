@@ -13,7 +13,7 @@
   (not safe))
 
 
-(zen:verbose-kernel 'kernel.features)
+(zen:verbose-kernel 'kernel/features)
 
 
 (define-macro (zen:install-features)

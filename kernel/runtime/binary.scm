@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.binary
+(block kernel/binary
 
 
 (c-include "<string.h>")

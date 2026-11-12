@@ -6,7 +6,7 @@
 ;;;
 
 
-(block core.class-syntax
+(block core/class-syntax
 
 
 ;;;

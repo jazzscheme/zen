@@ -6,7 +6,7 @@
 ;;;
 
 
-(block core.class-classes
+(block core/class-classes
 
 
 ;;;

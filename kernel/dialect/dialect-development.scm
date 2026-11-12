@@ -6,7 +6,7 @@
 ;;;
 
 
-(block dialect.dialect-development
+(block dialect/dialect-development
 
 
 ;;;

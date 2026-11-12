@@ -6,7 +6,7 @@
 ;;;
 
 
-(block core.unit-runtime
+(block core/unit-runtime
 
 
 (define zen:for-each-subunit-continue

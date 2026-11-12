@@ -6,7 +6,7 @@
 ;;;
 
 
-(block kernel.logging
+(block kernel/logging
 
 
 (c-declare #<<END-OF-DECLARE
